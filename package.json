@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "cd client && npm install && npm run build",
-    "start": "node server.js"
+    "vercel-build": "npm --prefix Carbon-frontend run build",
+    "build": "npm --prefix Carbon-frontend run build",
+    "start": "npm --prefix Carbon-backend start"
   },
   "repository": {
     "type": "git",
