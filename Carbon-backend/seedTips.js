@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const Tip = require("./models/Tip");
 require("dotenv").config();
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI?.trim())
   .then(async () => {
     await Tip.deleteMany();
     await Tip.insertMany([

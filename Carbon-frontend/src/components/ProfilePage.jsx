@@ -25,6 +25,7 @@ import {
   FaCamera,
 } from "react-icons/fa";
 import { HiSparkles } from "react-icons/hi";
+import { API_URL, getMediaUrl } from "../utils/api";
 
 const emptyProfile = {
   name: "",
@@ -54,7 +55,6 @@ function ProfilePage({ setUser }) {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const token = localStorage.getItem("token");
-  const API_URL = import.meta.env.VITE_API_URL || "";
 
   // Ref for the hidden file input element used for uploading profile pictures
   const fileInputRef = useRef(null);
@@ -64,19 +64,7 @@ function ProfilePage({ setUser }) {
   const [preview, setPreview] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
 
-  const getProfileImageSrc = (profilePic) => {
-    if (!profilePic) return "";
-
-    if (/^(https?:)?\/\//i.test(profilePic) || profilePic.startsWith("data:")) {
-      return profilePic;
-    }
-
-    if (profilePic.startsWith("/")) {
-      return `${API_URL}${profilePic}`;
-    }
-
-    return `${API_URL}/uploads/${profilePic}`;
-  };
+  const getProfileImageSrc = (profilePic) => getMediaUrl(profilePic);
 
   // Prefer the local preview while upload is in progress, then persisted database URL.
   const profileImage =

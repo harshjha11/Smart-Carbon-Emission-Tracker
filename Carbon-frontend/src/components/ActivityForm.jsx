@@ -17,6 +17,7 @@ import {
   FaMapMarkerAlt,
   FaPlus,
 } from "react-icons/fa";
+import { API_URL } from "../utils/api";
 
 const ActivityForm = () => {
   const navigate = useNavigate();
@@ -38,7 +39,7 @@ const ActivityForm = () => {
       }
 
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || ""}/api/activities`,
+        `${API_URL}/api/activities`,
         { type, data },
         { headers: { Authorization: `Bearer ${token}` } },
       );

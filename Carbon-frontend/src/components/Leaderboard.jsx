@@ -20,6 +20,7 @@ import {
   FaMapMarkerAlt,
 } from "react-icons/fa";
 import { HiSparkles } from "react-icons/hi";
+import { API_URL, getMediaUrl } from "../utils/api";
 
 const toNumber = (value, fallback = 0) => {
   const number = Number(value);
@@ -30,7 +31,6 @@ function Leaderboard() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL || "";
 
   useEffect(() => {
     let isMounted = true;
@@ -121,19 +121,7 @@ function Leaderboard() {
     return <span className="text-white font-bold text-sm">{rank}</span>;
   };
 
-  const getProfileImageSrc = (profilePic) => {
-    if (!profilePic) return "";
-
-    if (/^(https?:)?\/\//i.test(profilePic) || profilePic.startsWith("data:")) {
-      return profilePic;
-    }
-
-    if (profilePic.startsWith("/")) {
-      return `${API_URL}${profilePic}`;
-    }
-
-    return `${API_URL}/uploads/${profilePic}`;
-  };
+  const getProfileImageSrc = (profilePic) => getMediaUrl(profilePic);
 
   // Calculate stats
   const totalParticipants = users.length;

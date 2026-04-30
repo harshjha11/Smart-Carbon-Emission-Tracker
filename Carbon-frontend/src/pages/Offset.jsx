@@ -16,8 +16,7 @@ import {
   FaMapMarkerAlt,
   FaDownload,
 } from "react-icons/fa";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
+import { API_URL } from "../utils/api";
 
 const toNumber = (value, fallback = 0) => {
   const number = Number(value);

@@ -4,6 +4,7 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { FaEnvelope, FaLock, FaUser, FaKey } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { API_URL } from "../../utils/api";
 
 function Register() {
   const [form, setForm] = useState({
@@ -34,7 +35,7 @@ function Register() {
     }
     try {
       setSendingOtp(true);
-      await axios.post(`${import.meta.env.VITE_API_URL || ""}/api/auth/send-otp`, {
+      await axios.post(`${API_URL}/api/auth/send-otp`, {
         email: form.email,
       });
       setOtpSent(true);
@@ -55,7 +56,7 @@ function Register() {
     }
     try {
       setVerifyingOtp(true);
-      await axios.post(`${import.meta.env.VITE_API_URL || ""}/api/auth/verify-otp`, {
+      await axios.post(`${API_URL}/api/auth/verify-otp`, {
         email: form.email,
         otp: form.otp,
       });
@@ -77,7 +78,7 @@ function Register() {
       return;
     }
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL || ""}/api/auth/register`, {
+      await axios.post(`${API_URL}/api/auth/register`, {
         name: form.name,
         email: form.email,
         password: form.password,

@@ -14,6 +14,7 @@ import {
 } from "react-icons/fa";
 import logo from "../assets/logo.png";
 import earthImage from "../assets/earth_image.jpg";
+import { API_URL, getMediaUrl } from "../utils/api";
 
 function Landing() {
   const LEADERBOARD_REFRESH_MS = 5000;
@@ -21,21 +22,8 @@ function Landing() {
   const [leaderboardUsers, setLeaderboardUsers] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const API_URL = import.meta.env.VITE_API_URL || "";
 
-  const getProfileImageSrc = (profilePic) => {
-    if (!profilePic) return "";
-
-    if (/^(https?:)?\/\//i.test(profilePic) || profilePic.startsWith("data:")) {
-      return profilePic;
-    }
-
-    if (profilePic.startsWith("/")) {
-      return `${API_URL}${profilePic}`;
-    }
-
-    return `${API_URL}/uploads/${profilePic}`;
-  };
+  const getProfileImageSrc = (profilePic) => getMediaUrl(profilePic);
 
   const cards = [
     {

@@ -1,10 +1,10 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
 const path = require("path");
 
 const connectDB = require("./config/db");
-// Import Routes
 const tipRoutes = require("./routes/tips.routes");
 const goalRoutes = require("./routes/goal.routes");
 const authRoutes = require("./routes/auth.routes");
@@ -13,23 +13,31 @@ const achievementRoutes = require("./routes/achievement.routes");
 const userRoutes = require("./routes/user.routes");
 const offsetRoutes = require("./routes/offset.routes");
 
-// Email utility import
-const sendEmail = require("./utils/sendEmail");
-
 const app = express();
+app.set("trust proxy", 1);
 
-// Connect to DB
 connectDB();
-// Test email sending (uncomment to test)
+
 app.get("/api/health", (req, res) => {
-  res.send("Carbon Backend is running successfully 🚀");
+  res.json({ status: "ok", message: "Carbon Backend is running successfully" });
 });
 
-// Middlewares
-app.use(cors());
+const allowedOrigins = (process.env.CLIENT_URL || process.env.CORS_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
+}));
 app.use(express.json());
 
-// Routes
 app.use("/api/tips", tipRoutes);
 app.use("/api/goals", goalRoutes);
 app.use("/api/auth", authRoutes);
@@ -38,18 +46,23 @@ app.use("/api/achievements", achievementRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/offset", offsetRoutes);
 
-// Serve frontend in production
 const frontendDistPath = path.join(__dirname, "../Carbon-frontend/dist");
-app.use(express.static(frontendDistPath));
+const frontendIndexPath = path.join(frontendDistPath, "index.html");
 
-app.use((req, res, next) => {
-  if (req.path.startsWith("/api")) {
-    return next();
-  }
+if (fs.existsSync(frontendIndexPath)) {
+  app.use(express.static(frontendDistPath));
 
-  res.sendFile(path.join(frontendDistPath, "index.html"));
-});
+  app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(frontendIndexPath);
+  });
+} else {
+  app.get("/", (req, res) => {
+    res.json({
+      status: "ok",
+      message: "Carbon API is running. Build the frontend to serve the full app from this service.",
+    });
+  });
+}
 
-// Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

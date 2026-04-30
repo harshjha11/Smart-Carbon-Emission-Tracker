@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { motion } from "framer-motion";
 import { FaEnvelope, FaLock } from "react-icons/fa";
 import logo from "../../assets/logo.png";
+import { API_URL } from "../../utils/api";
 
 function Login({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -15,7 +16,7 @@ function Login({ onLogin }) {
     e.preventDefault();
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || ""}/api/auth/login`,
+        `${API_URL}/api/auth/login`,
         {
           email,
           password,

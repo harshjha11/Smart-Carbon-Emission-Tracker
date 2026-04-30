@@ -4,6 +4,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
 import { FaEnvelope, FaKey, FaLock, FaCheckCircle } from "react-icons/fa";
+import { API_URL } from "../utils/api";
 
 function ForgotPassword() {
   const [step, setStep] = useState("email"); // "email" | "otp" | "reset" | "success"
@@ -12,7 +13,6 @@ function ForgotPassword() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL || "";
 
   const handleOtpChange = (e) => {
     const value = e.target.value;

@@ -4,6 +4,7 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { FaLock } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { API_URL } from "../../utils/api";
 
 function ResetPassword() {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ function ResetPassword() {
 
     try {
       setLoading(true);
-      await axios.post(`${import.meta.env.VITE_API_URL || ""}/api/auth/reset-password`, {
+      await axios.post(`${API_URL}/api/auth/reset-password`, {
         email,
         newPassword: form.newPassword,
       });

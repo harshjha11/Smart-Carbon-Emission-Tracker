@@ -24,6 +24,7 @@ import {
   FaRocket,
   FaFire,
 } from "react-icons/fa";
+import { API_URL } from "../utils/api";
 
 function Achievements() {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ function Achievements() {
         setLoading(true);
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `${import.meta.env.VITE_API_URL || ""}/api/achievements`,
+          `${API_URL}/api/achievements`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

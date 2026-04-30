@@ -19,6 +19,7 @@ import {
   FaArrowRight,
   FaArrowLeft,
 } from "react-icons/fa";
+import { API_URL } from "../utils/api";
 
 const Goals = () => {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ const Goals = () => {
       }
 
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || ""}/api/goals`,
+        `${API_URL}/api/goals`,
         { weeklyGoal: parseFloat(goalInput) },
         { headers: { Authorization: `Bearer ${token}` } },
       );

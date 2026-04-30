@@ -4,6 +4,7 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { FaEnvelope, FaKey } from "react-icons/fa";
 import { toast } from "react-toastify";
+import { API_URL } from "../../utils/api";
 
 function VerifyOtp() {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ function VerifyOtp() {
       return;
     }
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL || ""}/api/auth/verify-forgot-otp`, {
+      await axios.post(`${API_URL}/api/auth/verify-forgot-otp`, {
 
         email: form.email,
         otp: form.otp,

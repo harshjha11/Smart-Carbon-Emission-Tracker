@@ -28,8 +28,8 @@ import ForgotPassword from "./pages/ForgotPassword";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import { API_URL } from "./utils/api";
 
-const API_URL = import.meta.env.VITE_API_URL || "";
 const HIDE_ROUTES = [
   "/",
   "/login",

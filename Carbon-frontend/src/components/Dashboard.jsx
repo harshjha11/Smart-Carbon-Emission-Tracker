@@ -30,8 +30,7 @@ import {
   FaExclamationCircle,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
-
-const API_URL = import.meta.env.VITE_API_URL || "";
+import { API_URL } from "../utils/api";
 
 const toNumber = (value, fallback = 0) => {
   const number = Number(value);

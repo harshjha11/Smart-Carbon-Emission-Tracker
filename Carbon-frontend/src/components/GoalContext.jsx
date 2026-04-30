@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import { API_URL } from "../utils/api";
 
 // Create the context
 const GoalContext = createContext();
@@ -21,7 +22,7 @@ export const GoalProvider = ({ children }) => {
         return;
       }
 
-      const res = await axios.get(`${import.meta.env.VITE_API_URL || ""}/api/goals`, {
+      const res = await axios.get(`${API_URL}/api/goals`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setGoal(res.data?.weeklyGoal ?? null);
