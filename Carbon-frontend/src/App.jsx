@@ -47,6 +47,7 @@ function App() {
     const token = localStorage.getItem("token");
     return token ? { token } : null;
   });
+  const [authChecked, setAuthChecked] = useState(false);
   // React Router hooks for navigation and location
   const navigate = useNavigate();
   const location = useLocation();
@@ -57,16 +58,25 @@ function App() {
   }, [location.pathname]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const hydrateUser = async () => {
       const token = localStorage.getItem("token");
 
       if (!token) {
-        setUser(null);
+        if (!cancelled) {
+          setUser(null);
+          setAuthChecked(true);
+        }
         return;
       }
 
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+
       try {
         const res = await fetch(`${API_URL}/api/users/me`, {
+          signal: controller.signal,
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -77,18 +87,27 @@ function App() {
         }
 
         const userData = await res.json();
-        setUser({ ...userData, token });
+        if (!cancelled) {
+          setUser({ ...userData, token });
+        }
       } catch {
         localStorage.removeItem("token");
-        setUser(null);
-        if (!HIDE_ROUTES.includes(location.pathname)) {
-          navigate("/login");
+        if (!cancelled) {
+          setUser(null);
         }
+      } finally {
+        if (!cancelled) {
+          setAuthChecked(true);
+        }
+        window.clearTimeout(timeoutId);
       }
     };
 
     hydrateUser();
-  }, [location.pathname, navigate]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleLogin = (userData) => {
     setUser(userData);
@@ -97,6 +116,9 @@ function App() {
   // PrivateRoute component to protect routes that require authentication
   const PrivateRoute = ({ element }) => {
     const token = localStorage.getItem("token");
+    if (!authChecked && token) {
+      return null;
+    }
     return token ? element : <Navigate to="/login" />;
   };
 

@@ -46,6 +46,7 @@ function ProfilePage({ setUser }) {
   const [profile, setProfile] = useState(emptyProfile);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving
   const [isSaved, setIsSaved] = useState(false);
@@ -158,6 +159,8 @@ function ProfilePage({ setUser }) {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchProfile = async () => {
       if (!token) {
         navigate("/login");
@@ -166,27 +169,46 @@ function ProfilePage({ setUser }) {
 
       try {
         setLoading(true);
+        setLoadError("");
         const res = await axios.get(`${API_URL}/api/users/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          timeout: 20000,
         });
         const fetchedProfile = normalizeProfile(res.data);
-        setProfile(fetchedProfile);
-        setUser?.((prev) => ({ ...prev, ...fetchedProfile }));
+        if (!cancelled) {
+          setProfile(fetchedProfile);
+          setUser?.((prev) => ({ ...prev, ...fetchedProfile }));
+        }
       } catch (err) {
-        toast.error("Failed to load profile");
+        if (cancelled) return;
+
+        const message =
+          err.response?.data?.message ||
+          (err.code === "ECONNABORTED"
+            ? "Profile request timed out. Please try again."
+            : "Failed to load profile");
+
+        setLoadError(message);
+        toast.error(message);
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
+          setUser?.(null);
           navigate("/login");
         }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProfile();
-  }, [token, API_URL, navigate, setUser]);
+    return () => {
+      cancelled = true;
+    };
+  }, [token, navigate, setUser]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
@@ -453,6 +475,22 @@ function ProfilePage({ setUser }) {
                 transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
               />
               <p className="mt-4 text-slate-500">Loading your profile...</p>
+            </div>
+          ) : loadError ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <p className="text-lg font-semibold text-slate-700">
+                Unable to load profile
+              </p>
+              <p className="mt-2 max-w-md text-sm text-slate-500">
+                {loadError}
+              </p>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="mt-6 rounded-full bg-emerald-600 px-6 py-2.5 font-semibold text-white hover:bg-emerald-700"
+              >
+                Retry
+              </button>
             </div>
           ) : (
             /* Profile Form */
