@@ -17,7 +17,7 @@ const generateOtp = () => {
 // Step 1: Send OTP to email
 // Step 1: Send OTP to email
 exports.sendOtp = async (req, res) => {
-  const { email } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
   try {
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
@@ -30,14 +30,19 @@ exports.sendOtp = async (req, res) => {
     // Find existing user or create new one with email only
     let user = await User.findOne({ email });
     if (user) {
+      if (user.password) {
+        return res.status(400).json({ message: "Email is already registered. Please log in." });
+      }
       user.otp = otp;
       user.otpExpiry = otpExpiry;
+      user.resetOtpVerified = false;
       await user.save();
     } else {
       user = new User({
         email,
         otp,
         otpExpiry,
+        resetOtpVerified: false,
         isVerified: false
       });
       await user.save();
@@ -65,14 +70,17 @@ exports.sendOtp = async (req, res) => {
 
 // Step 2: Verify OTP
 exports.verifyOtp = async (req, res) => {
-  const { email, otp } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
+  const { otp } = req.body;
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "User not found" });
 
-    // Check if already verified
     if (user.isVerified) {
-      return res.status(400).json({ message: "Email already verified" });
+      if (!user.password) {
+        return res.json({ message: "Email already verified" });
+      }
+      return res.status(400).json({ message: "Email is already registered. Please log in." });
     }
 
     // Validate OTP
@@ -99,7 +107,8 @@ exports.verifyOtp = async (req, res) => {
 
 // Step 3: Register (after OTP verification)
 exports.register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, password } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
   try {
     const user = await User.findOne({ email });
     if (!user) {
@@ -137,7 +146,8 @@ exports.register = async (req, res) => {
 
 // Step 4: Login
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { password } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "User not found" });
@@ -145,6 +155,10 @@ exports.login = async (req, res) => {
     // Check if email is verified
     if (!user.isVerified) {
       return res.status(400).json({ message: "Please verify OTP first" });
+    }
+
+    if (!user.password) {
+      return res.status(400).json({ message: "Please complete registration first" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -160,7 +174,7 @@ exports.login = async (req, res) => {
 
 // Step 5: Forgot Password - Send OTP
 exports.forgotPasswordOtp = async (req, res) => {
-  const { email } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
   try {
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
@@ -177,6 +191,7 @@ exports.forgotPasswordOtp = async (req, res) => {
 
     user.otp = otp;
     user.otpExpiry = otpExpiry;
+    user.resetOtpVerified = false;
     await user.save();
 
     // Send OTP via email
@@ -195,7 +210,8 @@ exports.forgotPasswordOtp = async (req, res) => {
 
 // Step 6: Verify Forgot Password OTP
 exports.verifyForgotOtp = async (req, res) => {
-  const { email, otp } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
+  const { otp } = req.body;
   try {
     const user = await User.findOne({ email });
     if (!user) {
@@ -212,8 +228,9 @@ exports.verifyForgotOtp = async (req, res) => {
       return res.status(400).json({ message: "OTP has expired" });
     }
 
-    // Mark OTP as verified by clearing it (user must reset password immediately)
-    // Keep otp fields for resetPassword to clear after password update
+    user.resetOtpVerified = true;
+    await user.save();
+
     res.json({ message: "OTP verified successfully" });
   } catch (err) {
     res.status(500).json({ message: "OTP verification error", error: err.message });
@@ -222,11 +239,16 @@ exports.verifyForgotOtp = async (req, res) => {
 
 // Step 7: Reset Password (after OTP verification)
 exports.resetPassword = async (req, res) => {
-  const { email, newPassword } = req.body;
+  const { newPassword } = req.body;
+  const email = req.body.email?.trim().toLowerCase();
   try {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "User not found" });
+    }
+
+    if (!user.resetOtpVerified || user.otpExpiry < new Date()) {
+      return res.status(400).json({ message: "Please verify a valid OTP before resetting password" });
     }
 
     // Validate password strength
@@ -241,6 +263,7 @@ exports.resetPassword = async (req, res) => {
     user.password = hashedPassword;
     user.otp = null;
     user.otpExpiry = null;
+    user.resetOtpVerified = false;
     await user.save();
 
     res.json({ message: "Password reset successfully" });

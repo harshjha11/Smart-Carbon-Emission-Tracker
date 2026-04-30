@@ -47,6 +47,10 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    resetOtpVerified: {
+      type: Boolean,
+      default: false,
+    },
     isVerified: {
       type: Boolean,
       default: false,
