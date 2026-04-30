@@ -23,6 +23,20 @@ function Landing() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const API_URL = import.meta.env.VITE_API_URL;
 
+  const getProfileImageSrc = (profilePic) => {
+    if (!profilePic) return "";
+
+    if (/^(https?:)?\/\//i.test(profilePic) || profilePic.startsWith("data:")) {
+      return profilePic;
+    }
+
+    if (profilePic.startsWith("/")) {
+      return `${API_URL}${profilePic}`;
+    }
+
+    return `${API_URL}/uploads/${profilePic}`;
+  };
+
   const cards = [
     {
       title: "Track Emissions",
@@ -382,23 +396,23 @@ function Landing() {
           </div>
         </div>
 
-        <div id="live-leaderboard" className="mx-auto max-w-7xl px-6 py-16">
+        <div id="live-leaderboard" className="mx-auto max-w-7xl px-6 py-20">
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-black">
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-black">
               Live Leaderboard
             </h2>
             <a
               href="#live-leaderboard"
-              className="text-md font-semibold text-black"
+              className="text-base font-semibold text-black"
             >
               Live Updates
             </a>
           </div>
-          <p className="mt-3 text-md text-slate-600 font-poppins dark:text-black">
+          <p className="mt-4 text-lg text-slate-600 font-poppins dark:text-black">
             Rankings update in near real-time so you can track top performers as
             activity gets logged.
           </p>
-          <p className="mt-1 text-md text-slate-500 font-poppins dark:text-black">
+          <p className="mt-2 text-base text-slate-500 font-poppins dark:text-black">
             Auto-refresh every {Math.floor(LEADERBOARD_REFRESH_MS / 1000)}{" "}
             seconds
             {lastUpdated
@@ -406,22 +420,22 @@ function Landing() {
               : ""}
           </p>
 
-          <div className="mt-8 overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-lg shadow-emerald-100/50">
+          <div className="mt-10 overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-2xl shadow-emerald-100/60">
             {leaderboardLoading ? (
-              <div className="p-8 text-sm text-slate-500">
+              <div className="p-10 text-base text-slate-500">
                 Loading leaderboard...
               </div>
             ) : leaderboardUsers.length === 0 ? (
-              <div className="p-8 text-sm text-slate-500">
+              <div className="p-10 text-base text-slate-500">
                 No leaderboard data yet this week.
               </div>
             ) : (
-              <table className="w-full text-left">
-                <thead className="bg-gradient-to-r from-emerald-900 to-teal-600 backdrop-blur text-sm text-white">
+              <table className="w-full text-left text-base">
+                <thead className="bg-gradient-to-r from-emerald-900 to-teal-600 backdrop-blur text-base text-white">
                   <tr>
-                    <th className="px-6 py-4 font-semibold">Rank</th>
-                    <th className="px-6 py-4 font-semibold">User</th>
-                    <th className="px-6 py-4 text-right font-semibold">
+                    <th className="px-8 py-5 font-semibold">Rank</th>
+                    <th className="px-8 py-5 font-semibold">User</th>
+                    <th className="px-8 py-5 text-right font-semibold">
                       Weekly CO2
                     </th>
                   </tr>
@@ -432,15 +446,15 @@ function Landing() {
                       key={user._id || `${user.name}-${index}`}
                       className="border-t border-slate-100 transition hover:bg-emerald-50/50"
                     >
-                      <td className="px-6 py-4 font-semibold text-slate-950">
+                      <td className="px-8 py-6 text-lg font-semibold text-slate-950">
                         #{user.rank || index + 1}
                       </td>
-                      <td className="px-6 py-4 text-slate-950">
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-emerald-200 bg-white text-xs font-bold text-slate-950/50">
+                      <td className="px-8 py-6 text-slate-950">
+                        <div className="flex items-center gap-4">
+                          <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-2 border-emerald-200 bg-white text-base font-bold text-slate-950/50 shadow-sm">
                             {user.profilePic ? (
                               <img
-                                src={`${API_URL}/uploads/${user.profilePic}`}
+                                src={getProfileImageSrc(user.profilePic)}
                                 alt={user.name || "User"}
                                 className="h-full w-full object-cover"
                               />
@@ -448,10 +462,12 @@ function Landing() {
                               user.name?.charAt(0)?.toUpperCase() || "U"
                             )}
                           </span>
-                          <span>{user.name || "Anonymous User"}</span>
+                          <span className="text-lg font-medium">
+                            {user.name || "Anonymous User"}
+                          </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right font-semibold text-emerald-700">
+                      <td className="px-8 py-6 text-right text-lg font-semibold text-emerald-700">
                         {Number(user.totalCO2 || 0).toFixed(2)} kg
                       </td>
                     </tr>

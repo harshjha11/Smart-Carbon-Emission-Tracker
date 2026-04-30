@@ -73,32 +73,56 @@ router.delete("/me", verifyToken, async (req, res) => {
   }
 });
 
+// DELETE /api/users/profile-pic - Remove current user's profile picture
+router.delete("/profile-pic", verifyToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.profilePic = null;
+    await user.save();
+
+    res.json({ user });
+  } catch (err) {
+    console.error("Remove profile picture failed:", err);
+    res.status(500).json({ message: "Failed to remove profile picture" });
+  }
+});
+
 // POST /api/users/upload - Upload profile picture
 router.post(
-  "/upload",
+  "/update-profile-pic",
   verifyToken,
-  upload.single("profilePic"),
+  upload.single("image"),
   async (req, res) => {
     try {
-      if (!req.file) {
-        return res.status(404).json({ message: "No file uploaded" });
+      const user = await User.findById(req.user.id);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
       }
 
-      const existingUser = await User.findById(req.user.id);
-      const previousProfilePic = existingUser?.profilePic;
-      const user = await User.findByIdAndUpdate(
-        req.user.id,
-        { profilePic: req.file.filename },
-        { new: true },
-      );
-      // Remove old profile picture if it exists and is different from the new one
-      if (previousProfilePic && previousProfilePic !== req.file.filename) {
-        await removeUploadedFile(previousProfilePic);
+      if (!req.file) {
+        if (req.body?.imageUrl === "") {
+          user.profilePic = null;
+          await user.save();
+
+          return res.json({ user });
+        }
+
+        return res.status(400).json({ message: "No file uploaded" });
       }
-      // Return the new profile picture URL
-      res.json({ message: "Uploaded", profilePic: user.profilePic });
+
+      user.profilePic = req.file.path;
+      await user.save();
+
+      res.json({ user });
     } catch (err) {
-      res.status(500).json({ message: "Failed to upload profile picture" });
+      console.error(err); // VERY IMPORTANT
+      res.status(500).json({ message: "Upload failed" });
     }
   },
 );

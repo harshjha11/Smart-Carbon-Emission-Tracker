@@ -93,6 +93,20 @@ function Leaderboard() {
     return <span className="text-white font-bold text-sm">{rank}</span>;
   };
 
+  const getProfileImageSrc = (profilePic) => {
+    if (!profilePic) return "";
+
+    if (/^(https?:)?\/\//i.test(profilePic) || profilePic.startsWith("data:")) {
+      return profilePic;
+    }
+
+    if (profilePic.startsWith("/")) {
+      return `${API_URL}${profilePic}`;
+    }
+
+    return `${API_URL}/uploads/${profilePic}`;
+  };
+
   // Calculate stats
   const totalParticipants = users.length;
   const topPerformerCO2 = users.length > 0 ? users[0]?.totalCO2 : 0;
@@ -440,7 +454,7 @@ function Leaderboard() {
                           >
                             {user.profilePic ? (
                               <img
-                                src={`${API_URL}/uploads/${user.profilePic}`}
+                                src={getProfileImageSrc(user.profilePic)}
                                 alt={user.name || "User"}
                                 className="h-full w-full object-cover"
                               />

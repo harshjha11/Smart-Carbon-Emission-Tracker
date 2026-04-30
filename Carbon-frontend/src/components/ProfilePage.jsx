@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -35,14 +35,108 @@ function ProfilePage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadingPic, setUploadingPic] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving
+  const [isSaved, setIsSaved] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [formSuccess, setFormSuccess] = useState("");
+  const [disconnectStatus, setDisconnectStatus] = useState("idle"); // idle | disconnecting
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const token = localStorage.getItem("token");
   const API_URL = import.meta.env.VITE_API_URL;
-  const profilePicUrl = profile.profilePic
-    ? `${API_URL}/uploads/${profile.profilePic}`
-    : "";
+
+  // Ref for the hidden file input element used for uploading profile pictures
+  const fileInputRef = useRef(null);
+
+  // State variables for handling profile picture upload, including the selected file, preview URL, and uploaded image URL
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [imageUrl, setImageUrl] = useState("");
+
+  // Compute the profile image URL, prioritizing the uploaded image, then the user's existing profile picture, and finally the preview URL for the selected file
+  const profileImage = imageUrl || profile?.profilePic || preview || "";
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+
+    setFile(selectedFile);
+    setPreview(URL.createObjectURL(selectedFile));
+    handleUpload(selectedFile);
+  };
+  // Function to handle profile picture upload via the secure backend (prevents exposing Cloudinary keys)
+  const handleUpload = async (selectedFileParam) => {
+    const uploadFile = selectedFileParam || file;
+
+    if (!uploadFile) {
+      alert("No file selected");
+      return;
+    }
+
+    const bodyData = new FormData();
+    bodyData.append("image", uploadFile);
+
+    try {
+      setSaveStatus("saving");
+
+      const res = await axios.post(
+        `${API_URL}/api/users/update-profile-pic`,
+        bodyData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
+
+      const data = res.data;
+
+      const newImageUrl = data.user?.profilePic;
+
+      setImageUrl(newImageUrl);
+      setProfile((prev) => ({
+        ...prev,
+        ...data.user,
+      }));
+
+      setFormSuccess("Profile picture updated!");
+    } catch (err) {
+      console.error("Upload failed:", err);
+      setFormError("Upload failed. Please try again.");
+    } finally {
+      setSaveStatus("idle");
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    try {
+      setSaveStatus("saving");
+
+      const res = await axios.delete(
+        `${API_URL}/api/users/profile-pic`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      const data = res.data;
+
+      setProfile(data.user);
+      setImageUrl("");
+      setPreview(null);
+      setFile(null);
+
+      setFormSuccess("Profile photo removed.");
+    } catch (err) {
+      console.error("Remove failed:", err);
+      setFormError("Failed to remove photo.");
+    } finally {
+      setSaveStatus("idle");
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -93,39 +187,6 @@ function ProfilePage() {
       setSaving(false);
     }
   };
-  // New function to handle profile picture upload
-  const handleProfilePicUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadingPic(true);
-      const formData = new FormData();
-      formData.append("profilePic", file);
-
-      const uploadRes = await axios.post(
-        `${API_URL}/api/users/upload`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        },
-      );
-
-      setProfile((prev) => ({
-        ...prev,
-        profilePic: uploadRes.data.profilePic,
-      }));
-      toast.success("Profile picture updated");
-    } catch (err) {
-      toast.error("Failed to upload profile picture");
-    } finally {
-      setUploadingPic(false);
-      e.target.value = "";
-    }
-  };
 
   const handleDeleteAccount = async () => {
     const confirmed = window.confirm(
@@ -140,7 +201,7 @@ function ProfilePage() {
       });
 
       localStorage.removeItem("token");
-      setUser?.(null);
+      setProfile?.(null);
       toast.success("Account deleted successfully");
       navigate("/");
     } catch (err) {
@@ -150,6 +211,13 @@ function ProfilePage() {
     }
   };
 
+  const initials = profile.name
+    ? profile.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+    : "U";
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -229,15 +297,23 @@ function ProfilePage() {
           transition={{ duration: 0.5 }}
         >
           <motion.div
-            className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-200 mb-5 relative"
+            className="inline-flex items-center justify-center w-28 h-28 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-200 mb-5 relative overflow-hidden"
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
           >
-            <FaUser className="text-white text-3xl" />
+            {profileImage ? (
+              <img
+                src={profileImage}
+                alt={profile.name || "Profile"}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <FaUser className="text-white text-3xl" />
+            )}
             {/* Sparkle effect */}
             <motion.div
-              className="absolute -top-1 -right-1"
+              className="absolute -top-1 -right-1 z-10"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.5 }}
@@ -359,17 +435,15 @@ function ProfilePage() {
                 className="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-2xl bg-gradient-to-br from-emerald-50/80 to-teal-50/80 border border-emerald-100"
               >
                 <div className="relative">
-                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-200/50">
-                    {profilePicUrl ? (
+                  <div className="relative w-24 h-24 overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-emerald-200/50 ring-4 ring-white/80">
+                    {profileImage ? (
                       <img
-                        src={profilePicUrl}
+                        src={profileImage}
                         alt="Profile"
-                        className="h-full w-full rounded-2xl object-cover"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
-                      <span className="text-4xl font-bold text-white">
-                        {profile.name?.charAt(0)?.toUpperCase() || "U"}
-                      </span>
+                      initials
                     )}
                   </div>
                   <div className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-emerald-500 border-4 border-white flex items-center justify-center">
@@ -382,29 +456,42 @@ function ProfilePage() {
                   </h3>
                   <p className="text-slate-500 text-sm">{profile.email}</p>
                   <div className="mt-3">
-                    <label
-                      htmlFor="profile-pic-input"
-                      className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-emerald-300 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
-                    >
-                      <FaCamera />
-                      {uploadingPic ? "Uploading..." : "Upload Photo"}
-                    </label>
                     <input
-                      id="profile-pic-input"
                       type="file"
                       accept="image/*"
-                      onChange={handleProfilePicUpload}
-                      className="hidden"
-                      disabled={uploadingPic}
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      style={{ display: "none" }}
                     />
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2 justify-center sm:justify-start">
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
-                      🌱 Eco Enthusiast
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full bg-teal-100 text-teal-700 text-xs font-medium">
-                      🌍 Planet Protector
-                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={saveStatus === "saving"}
+                        className="inline-flex items-center gap-2 rounded-md border border-emerald-600 bg-emerald-600 px-4 py-2 font-medium text-white shadow-md shadow-emerald-200/50 transition-colors hover:bg-emerald-700 hover:border-emerald-700 disabled:cursor-not-allowed disabled:opacity-70 dark:border-emerald-400 dark:bg-emerald-400 dark:text-slate-950 dark:shadow-none dark:hover:bg-emerald-300"
+                      >
+                        Upload Photo
+                      </button>
+
+                      {profileImage && (
+                        <button
+                          type="button"
+                          onClick={handleRemovePhoto}
+                          disabled={saveStatus === "saving"}
+                          className="inline-flex items-center gap-2 rounded-md border border-rose-600 bg-rose-600 px-4 py-2 font-medium text-white shadow-md shadow-rose-200/50 transition-colors hover:bg-rose-700 hover:border-rose-700 disabled:cursor-not-allowed disabled:opacity-70 dark:border-rose-400 dark:bg-rose-400 dark:text-slate-950 dark:shadow-none dark:hover:bg-rose-300"
+                        >
+                          Remove Photo
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2 justify-center sm:justify-start">
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
+                        🌱 Eco Enthusiast
+                      </span>
+                      <span className="px-2.5 py-1 rounded-full bg-teal-100 text-teal-700 text-xs font-medium">
+                        🌍 Planet Protector
+                      </span>
+                    </div>
                   </div>
                 </div>
               </motion.div>

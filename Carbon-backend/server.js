@@ -28,7 +28,6 @@ app.get("/", (req, res) => {
 // Middlewares
 app.use(cors());
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "uploads"))); // Serve profile pictures
 
 // Routes
 app.use("/api/tips", tipRoutes);
