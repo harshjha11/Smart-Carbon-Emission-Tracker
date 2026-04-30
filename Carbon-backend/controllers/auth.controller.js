@@ -14,6 +14,20 @@ const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+const isEmailConfigured = () => Boolean(process.env.EMAIL_USER?.trim() && process.env.EMAIL_PASS?.trim());
+const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const getEmailErrorMessage = (err) => {
+  if (err?.code === "EAUTH") {
+    return "Email login failed. Check EMAIL_USER and Gmail App Password in Render environment variables.";
+  }
+
+  if (["ETIMEDOUT", "ESOCKET", "ECONNECTION"].includes(err?.code)) {
+    return "Email service connection timed out. Please try again in a moment.";
+  }
+
+  return "Unable to send OTP email right now. Please try again.";
+};
+
 // Step 1: Send OTP to email
 // Step 1: Send OTP to email
 exports.sendOtp = async (req, res) => {
@@ -21,6 +35,16 @@ exports.sendOtp = async (req, res) => {
   try {
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Please enter a valid email address" });
+    }
+
+    if (!isEmailConfigured()) {
+      return res.status(500).json({
+        message: "Email service is not configured. Set EMAIL_USER and EMAIL_PASS in Render.",
+      });
     }
 
     // Generate OTP and set expiry (10 minutes)
@@ -48,18 +72,28 @@ exports.sendOtp = async (req, res) => {
       await user.save();
     }
 
-    // Send OTP via email
-    await sendEmail(
-      email,
-      "Your Carbon Tracker OTP",
-      `Your OTP is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nIf you did not request this, please ignore this email.`
-    );
+    try {
+      await sendEmail(
+        email,
+        "Your Carbon Tracker OTP",
+        `Your OTP is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nIf you did not request this, please ignore this email.`
+      );
+    } catch (emailError) {
+      return res.status(502).json({
+        message: getEmailErrorMessage(emailError),
+        error: emailError.message,
+      });
+    }
 
     res.json({ message: "OTP sent to email" });
 
   } catch (err) {
     // 🔴 ADD THIS LINE (VERY IMPORTANT)
     console.error("SEND OTP ERROR:", err);
+
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "Email is already registered. Please log in." });
+    }
 
     res.status(500).json({
       message: "Error sending OTP",
@@ -180,6 +214,16 @@ exports.forgotPasswordOtp = async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Please enter a valid email address" });
+    }
+
+    if (!isEmailConfigured()) {
+      return res.status(500).json({
+        message: "Email service is not configured. Set EMAIL_USER and EMAIL_PASS in Render.",
+      });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: "User not found" });
@@ -194,12 +238,18 @@ exports.forgotPasswordOtp = async (req, res) => {
     user.resetOtpVerified = false;
     await user.save();
 
-    // Send OTP via email
-    await sendEmail(
-      email,
-      "Carbon Tracker - Password Reset OTP",
-      `Your password reset OTP is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nIf you did not request this, please ignore this email.`
-    );
+    try {
+      await sendEmail(
+        email,
+        "Carbon Tracker - Password Reset OTP",
+        `Your password reset OTP is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nIf you did not request this, please ignore this email.`
+      );
+    } catch (emailError) {
+      return res.status(502).json({
+        message: getEmailErrorMessage(emailError),
+        error: emailError.message,
+      });
+    }
 
     res.json({ message: "Password reset OTP sent to email" });
   } catch (err) {

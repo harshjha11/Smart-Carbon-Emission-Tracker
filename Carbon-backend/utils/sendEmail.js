@@ -1,62 +1,56 @@
 const nodemailer = require("nodemailer");
 
-// Create reusable transporter using Gmail SMTP
-// const transporter = nodemailer.createTransport({
-//   service: "gmail",
-//   auth: {
-//     user: process.env.EMAIL_USER,
-//     pass: process.env.EMAIL_PASS
-//   }
-// });
+const getTimeout = () => Number(process.env.EMAIL_TIMEOUT_MS) || 15000;
 
-/**
- * Send an email using Nodemailer
- * @param {string} to - Recipient email address
- * @param {string} subject - Email subject
- * @param {string} text - Email body (plain text)
- * @returns {Promise} - Resolves with info on success, throws on error
- */
+const createTransporter = (port) =>
+  nodemailer.createTransport({
+    host: (process.env.EMAIL_HOST || "smtp.gmail.com").trim(),
+    port,
+    secure: port === 465,
+    requireTLS: port === 587,
+    connectionTimeout: getTimeout(),
+    greetingTimeout: getTimeout(),
+    socketTimeout: getTimeout(),
+    auth: {
+      user: process.env.EMAIL_USER.trim(),
+      pass: process.env.EMAIL_PASS.replace(/\s/g, ""),
+    },
+  });
+
 const sendEmail = async (to, subject, text) => {
-  try {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      throw new Error("EMAIL_USER and EMAIL_PASS must be set");
-    }
-
-    const port = Number(process.env.EMAIL_PORT) || 465;
-    const password = process.env.EMAIL_PASS.replace(/\s/g, "");
-
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || "smtp.gmail.com",
-      port,
-      secure: port === 465,
-      connectionTimeout: Number(process.env.EMAIL_TIMEOUT_MS) || 15000,
-      greetingTimeout: Number(process.env.EMAIL_TIMEOUT_MS) || 15000,
-      socketTimeout: Number(process.env.EMAIL_TIMEOUT_MS) || 15000,
-      auth: {
-        user: process.env.EMAIL_USER.trim(),
-        pass: password,
-      },
-    });
-
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || `"Carbon Tracker" <${process.env.EMAIL_USER.trim()}>`,
-      to,
-      subject,
-      text,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent:", info.response);
-    return info;
-  } catch (error) {
-    console.error("Email sending failed:", {
-      message: error.message,
-      code: error.code,
-      command: error.command,
-      response: error.response,
-    });
-    throw error;
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error("EMAIL_USER and EMAIL_PASS must be set");
   }
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || `"Carbon Tracker" <${process.env.EMAIL_USER.trim()}>`,
+    to,
+    subject,
+    text,
+  };
+
+  const primaryPort = Number(process.env.EMAIL_PORT) || 465;
+  const portsToTry = [...new Set([primaryPort, primaryPort === 465 ? 587 : 465])];
+  let lastError;
+
+  for (const port of portsToTry) {
+    try {
+      const transporter = createTransporter(port);
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`Email sent via port ${port}:`, info.response);
+      return info;
+    } catch (error) {
+      lastError = error;
+      console.error(`Email sending failed on port ${port}:`, {
+        message: error.message,
+        code: error.code,
+        command: error.command,
+        response: error.response,
+      });
+    }
+  }
+
+  throw lastError;
 };
 
 module.exports = sendEmail;

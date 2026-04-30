@@ -45,8 +45,7 @@ function ProfilePage({ user, setUser }) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(() => normalizeProfile(user));
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(!user?.email);
-  const [loadError, setLoadError] = useState("");
+  const [loadError, setLoadError] = useState(user?.email ? "" : "Profile data is not available. Please log in again.");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving
   const [isSaved, setIsSaved] = useState(false);
@@ -56,7 +55,6 @@ function ProfilePage({ user, setUser }) {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const token = localStorage.getItem("token");
-  const fetchedTokenRef = useRef(null);
 
   // Ref for the hidden file input element used for uploading profile pictures
   const fileInputRef = useRef(null);
@@ -160,66 +158,18 @@ function ProfilePage({ user, setUser }) {
   };
 
   useEffect(() => {
-    let cancelled = false;
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
-    const fetchProfile = async () => {
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-
-      if (fetchedTokenRef.current === token) {
-        return;
-      }
-
-      fetchedTokenRef.current = token;
-
-      try {
-        if (!profile.email) {
-          setLoading(true);
-        }
-        setLoadError("");
-        const res = await axios.get(`${API_URL}/api/users/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          timeout: 20000,
-        });
-        const fetchedProfile = normalizeProfile(res.data);
-        if (!cancelled) {
-          setProfile(fetchedProfile);
-          setUser?.((prev) => ({ ...prev, ...fetchedProfile }));
-        }
-      } catch (err) {
-        if (cancelled) return;
-
-        const message =
-          err.response?.data?.message ||
-          (err.code === "ECONNABORTED"
-            ? "Profile request timed out. Please try again."
-            : "Failed to load profile");
-
-        if (!profile.email) {
-          setLoadError(message);
-        }
-        toast.error(message);
-        if (err.response?.status === 401) {
-          localStorage.removeItem("token");
-          setUser?.(null);
-          navigate("/login");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchProfile();
-    return () => {
-      cancelled = true;
-    };
-  }, [token, navigate, setUser, profile.email]);
+    if (user?.email) {
+      setProfile(normalizeProfile(user));
+      setLoadError("");
+    } else {
+      setLoadError("Profile data is not available. Please log in again.");
+    }
+  }, [token, user, navigate]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
@@ -401,7 +351,7 @@ function ProfilePage({ user, setUser }) {
           </p>
 
           {/* Stats Bar */}
-          {!loading && profile.name && (
+          {profile.name && (
             <motion.div
               className="mt-6 inline-flex flex-wrap items-center justify-center gap-6 px-6 py-3 rounded-2xl bg-white/60 backdrop-blur-sm border border-emerald-100 shadow-sm"
               initial={{ opacity: 0, y: 20 }}
@@ -478,16 +428,7 @@ function ProfilePage({ user, setUser }) {
           </div>
 
           {/* Loading State */}
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <motion.div
-                className="w-16 h-16 rounded-full border-4 border-emerald-200 border-t-emerald-600"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              />
-              <p className="mt-4 text-slate-500">Loading your profile...</p>
-            </div>
-          ) : loadError ? (
+          {loadError ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <p className="text-lg font-semibold text-slate-700">
                 Unable to load profile
@@ -497,10 +438,14 @@ function ProfilePage({ user, setUser }) {
               </p>
               <button
                 type="button"
-                onClick={() => window.location.reload()}
+                onClick={() => {
+                  localStorage.removeItem("token");
+                  setUser?.(null);
+                  navigate("/login");
+                }}
                 className="mt-6 rounded-full bg-emerald-600 px-6 py-2.5 font-semibold text-white hover:bg-emerald-700"
               >
-                Retry
+                Log in again
               </button>
             </div>
           ) : (
