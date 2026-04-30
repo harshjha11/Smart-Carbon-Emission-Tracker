@@ -55,7 +55,6 @@ Carbon-tracker/
     ├── models/
     ├── routes/
     ├── middleware/
-    ├── uploads/
     └── server.js
 
 ```
