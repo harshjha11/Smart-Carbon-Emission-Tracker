@@ -19,6 +19,11 @@ import {
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
+const toNumber = (value, fallback = 0) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+};
+
 function Offset() {
   const navigate = useNavigate();
   const [offsetData, setOffsetData] = useState(null);
@@ -34,7 +39,7 @@ function Offset() {
         const res = await axios.get(`${API_URL}/api/offset/summary`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setOffsetData(res.data);
+        setOffsetData(res.data || {});
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load offset data");
       } finally {
@@ -215,7 +220,7 @@ function Offset() {
                       Total CO₂ Emitted
                     </p>
                     <p className="text-3xl md:text-4xl font-bold text-emerald-700">
-                      {offsetData?.totalCO2?.toFixed(2) || 0}
+                      {toNumber(offsetData?.totalCO2).toFixed(2)}
                       <span className="text-lg font-normal ml-1">kg</span>
                     </p>
                   </motion.div>
@@ -291,9 +296,9 @@ function Offset() {
                   </h3>
                   <p className="text-3xl font-bold text-amber-700 mb-1">
                     ₹
-                    {offsetData?.offsetOptions?.monthlyOffset?.renewableEnergyCost?.amount?.toFixed(
-                      0,
-                    ) || 0}
+                    {toNumber(
+                      offsetData?.offsetOptions?.monthlyOffset?.renewableEnergyCost?.amount,
+                    ).toFixed(0)}
                   </p>
                   <p className="text-base text-slate-500 mb-4">
                     approx. contribution
@@ -374,9 +379,9 @@ function Offset() {
                           Projected Yearly CO₂
                         </p>
                         <p className="text-2xl font-bold text-slate-800">
-                          {offsetData.offsetOptions.yearlyOffset.projectedCO2?.toFixed(
-                            1,
-                          ) || 0}
+                          {toNumber(
+                            offsetData.offsetOptions.yearlyOffset.projectedCO2,
+                          ).toFixed(1)}
                           <span className="text-base font-normal ml-1">kg</span>
                         </p>
                       </div>

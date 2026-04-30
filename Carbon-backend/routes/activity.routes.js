@@ -98,14 +98,32 @@ router.post("/", verifyToken, async (req, res) => {
 
   try {
     if (type === "transport") {
-      carbon = parseFloat(data.distance) * emissionFactors.transport[data.mode];
+      const distance = Number(data?.distance);
+      const factor = emissionFactors.transport[data?.mode];
+
+      if (!Number.isFinite(distance) || distance <= 0 || !factor) {
+        return res.status(400).json({ message: "Enter a valid distance and transport mode." });
+      }
+
+      carbon = distance * factor;
       suggestion =
         "Try walking, cycling, or using public transport more often.";
     } else if (type === "electricity") {
-      carbon = parseFloat(data.usage) * emissionFactors.electricity;
+      const usage = Number(data?.usage);
+
+      if (!Number.isFinite(usage) || usage <= 0) {
+        return res.status(400).json({ message: "Enter a valid electricity usage." });
+      }
+
+      carbon = usage * emissionFactors.electricity;
       suggestion = "Reduce electricity usage and switch to renewable sources.";
     } else if (type === "diet") {
-      carbon = emissionFactors.diet[data.dietType];
+      carbon = emissionFactors.diet[data?.dietType];
+
+      if (!Number.isFinite(carbon)) {
+        return res.status(400).json({ message: "Select a valid diet type." });
+      }
+
       suggestion = "Consider eating more plant-based meals.";
     } else {
       return res.status(400).json({ message: "Invalid activity type." });

@@ -43,7 +43,7 @@ function Achievements() {
             },
           },
         );
-        setAchievements(res.data.achievements || []);
+        setAchievements(Array.isArray(res.data?.achievements) ? res.data.achievements : []);
       } catch (err) {
         console.error("Failed to load achievements", err);
       } finally {

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const fs = require("fs/promises");
 const path = require("path");
+const bcrypt = require("bcryptjs");
 const verifyToken = require("../middleware/authMiddleware");
 const upload = require("../middleware/upload");
 const User = require("../models/User");
@@ -9,6 +10,7 @@ const Activity = require("../models/Activity"); // Required for achievements
 const Goal = require("../models/Goal");
 const Achievement = require("../models/Achievement");
 const uploadsDir = path.join(__dirname, "..", "uploads");
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
 
 const removeUploadedFile = async (filename) => {
   if (!filename) return;
@@ -28,6 +30,10 @@ const removeUploadedFile = async (filename) => {
 router.get("/me", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     res.json(user);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch user profile" });
@@ -37,13 +43,42 @@ router.get("/me", verifyToken, async (req, res) => {
 // PUT /api/users/me - Update name/email/password
 router.put("/me", verifyToken, async (req, res) => {
   try {
-    const updated = await User.findByIdAndUpdate(
-      req.user.id,
-      { $set: req.body },
-      { new: true },
-    ).select("-password");
+    const updates = {};
+
+    if (typeof req.body.name === "string") {
+      updates.name = req.body.name.trim();
+    }
+
+    if (typeof req.body.email === "string") {
+      updates.email = req.body.email.trim().toLowerCase();
+    }
+
+    if (typeof req.body.password === "string" && req.body.password.trim()) {
+      if (!passwordRegex.test(req.body.password)) {
+        return res.status(400).json({
+          message:
+            "Password must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, and 1 special character",
+        });
+      }
+
+      updates.password = await bcrypt.hash(req.body.password, 10);
+    }
+
+    const updated = await User.findByIdAndUpdate(req.user.id, updates, {
+      new: true,
+      runValidators: true,
+    }).select("-password");
+
+    if (!updated) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     res.json(updated);
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "Email is already in use" });
+    }
+
     res.status(500).json({ message: "Failed to update profile" });
   }
 });
@@ -132,14 +167,17 @@ router.get("/achievements", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const user = await User.findById(userId);
-    const activities = await Activity.find({ userId });
+    const activities = await Activity.find({ user: userId });
 
     const achievements = [];
     const now = new Date();
     const oneWeekAgo = new Date(now);
     oneWeekAgo.setDate(now.getDate() - 7);
 
-    const totalCO2 = activities.reduce((sum, act) => sum + act.kg, 0);
+    const totalCO2 = activities.reduce(
+      (sum, act) => sum + (act.carbonFootprint || 0),
+      0,
+    );
 
     // 🎉 First Login Badge
     if (!user.hasLoggedIn) {
@@ -154,7 +192,7 @@ router.get("/achievements", verifyToken, async (req, res) => {
     }
 
     // 🥇 Under Goal Champion Badge
-    if (user.goal && totalCO2 < user.goal) {
+    if (user.weeklyGoal && totalCO2 < user.weeklyGoal) {
       achievements.push("🥇 Under Goal Champion");
     }
 

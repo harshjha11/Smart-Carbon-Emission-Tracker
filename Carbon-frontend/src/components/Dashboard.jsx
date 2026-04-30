@@ -33,6 +33,20 @@ import { motion } from "framer-motion";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
 
+const toNumber = (value, fallback = 0) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+};
+
+const normalizeActivity = (activity) => ({
+  ...activity,
+  type: activity?.type || "activity",
+  carbonFootprint: toNumber(activity?.carbonFootprint),
+  createdAt: activity?.createdAt || new Date().toISOString(),
+});
+
+const normalizeTips = (data) => (Array.isArray(data) ? data : []);
+
 function Dashboard() {
   const navigate = useNavigate();
   const [activities, setActivities] = useState([]);
@@ -56,16 +70,23 @@ function Dashboard() {
           }),
         ]);
 
-        const fetchedActivities = activitiesRes.data;
+        const fetchedActivities = Array.isArray(activitiesRes.data)
+          ? activitiesRes.data.map(normalizeActivity)
+          : [];
         setActivities(fetchedActivities);
+        const summaryData = summaryRes.data || {};
+        const summaryGoal = toNumber(goal ?? summaryData.goal, 100);
+        const summaryTotal = toNumber(summaryData.total);
         setWeeklySummary({
-          ...summaryRes.data,
-          goal: goal ?? summaryRes.data.goal,
+          ...summaryData,
+          total: summaryTotal,
+          goal: summaryGoal,
+          status: summaryTotal <= summaryGoal ? "under" : "over",
         });
 
         // Calculate total emissions per activity type
         const emissionsByActivityType = fetchedActivities.reduce((acc, act) => {
-          acc[act.type] = (acc[act.type] || 0) + act.carbonFootprint;
+          acc[act.type] = (acc[act.type] || 0) + toNumber(act.carbonFootprint);
           return acc;
         }, {});
 
@@ -108,7 +129,7 @@ function Dashboard() {
               .get(`${API_URL}/api/tips?category=${category}`, {
                 headers: { Authorization: `Bearer ${token}` },
               })
-              .then((res) => res.data)
+              .then((res) => normalizeTips(res.data))
               .catch(() => []);
           });
 
@@ -125,7 +146,7 @@ function Dashboard() {
           const generalTipsRes = await axios.get(`${API_URL}/api/tips`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          setTips(generalTipsRes.data);
+          setTips(normalizeTips(generalTipsRes.data));
         }
       } catch (err) {
         console.error("Failed to load dashboard data", err);
@@ -135,16 +156,16 @@ function Dashboard() {
     };
 
     fetchData();
-  }, [goal]);
+  }, [goal, API_URL]);
 
   const emissionsByType = activities.reduce((acc, act) => {
-    acc[act.type] = (acc[act.type] || 0) + act.carbonFootprint;
+    acc[act.type] = (acc[act.type] || 0) + toNumber(act.carbonFootprint);
     return acc;
   }, {});
 
   const chartDataByType = Object.keys(emissionsByType).map((type) => ({
     type: type.charAt(0).toUpperCase() + type.slice(1),
-    carbon: parseFloat(emissionsByType[type].toFixed(2)),
+    carbon: parseFloat(toNumber(emissionsByType[type]).toFixed(2)),
   }));
 
   const chartDataByDate = activities
@@ -153,7 +174,7 @@ function Dashboard() {
         day: "numeric",
         month: "short",
       }),
-      carbon: parseFloat(act.carbonFootprint.toFixed(2)),
+      carbon: parseFloat(toNumber(act.carbonFootprint).toFixed(2)),
     }))
     .reverse();
 
@@ -626,18 +647,18 @@ function Dashboard() {
                       className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                         act.type === "transport"
                           ? "bg-blue-100 text-blue-600 dark:text-white"
-                          : act.type === "energy"
+                          : act.type === "electricity"
                             ? "bg-amber-100 text-amber-600 dark:text-white"
-                            : act.type === "food"
+                            : act.type === "diet"
                               ? "bg-green-100 text-green-600 dark:text-white"
                               : "bg-purple-100 text-purple-600 dark:text-white"
                       }`}
                     >
                       {act.type === "transport"
                         ? "🚗"
-                        : act.type === "energy"
+                        : act.type === "electricity"
                           ? "⚡"
-                          : act.type === "food"
+                          : act.type === "diet"
                             ? "🍽️"
                             : "📦"}
                     </div>
@@ -656,7 +677,7 @@ function Dashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-slate-800 dark:text-white">
-                        {act.carbonFootprint.toFixed(2)}
+                        {toNumber(act.carbonFootprint).toFixed(2)}
                       </p>
                       <p className="text-xs text-slate-500 dark:text-white">
                         kg CO₂
@@ -720,7 +741,7 @@ function Dashboard() {
                       <div className="flex items-start gap-3">
                         <span className="text-xl">🌿</span>
                         <p className="text-slate-700 text-base leading-relaxed">
-                          {tip.message}
+                          {tip.message || tip.text || "Try one small sustainable action today."}
                         </p>
                       </div>
                     </motion.div>
@@ -755,7 +776,7 @@ function Dashboard() {
             },
             {
               label: "Total CO₂",
-              value: `${activities.reduce((sum, a) => sum + a.carbonFootprint, 0).toFixed(1)} kg`,
+              value: `${activities.reduce((sum, a) => sum + toNumber(a.carbonFootprint), 0).toFixed(1)} kg`,
               icon: "🌍",
               color: "from-emerald-500 to-teal-600",
               bgColor: "bg-emerald-600/10 dark:bg-teal-600/20",
@@ -764,7 +785,7 @@ function Dashboard() {
               label: "Avg per Activity",
               value:
                 activities.length > 0
-                  ? `${(activities.reduce((sum, a) => sum + a.carbonFootprint, 0) / activities.length).toFixed(2)} kg`
+                  ? `${(activities.reduce((sum, a) => sum + toNumber(a.carbonFootprint), 0) / activities.length).toFixed(2)} kg`
                   : "0 kg",
               icon: "📈",
               color: "from-amber-500 to-orange-600",

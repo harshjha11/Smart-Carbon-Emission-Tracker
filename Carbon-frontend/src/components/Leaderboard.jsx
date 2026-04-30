@@ -21,6 +21,11 @@ import {
 } from "react-icons/fa";
 import { HiSparkles } from "react-icons/hi";
 
+const toNumber = (value, fallback = 0) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+};
+
 function Leaderboard() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +41,14 @@ function Leaderboard() {
             Authorization: `Bearer ${token}`,
           },
         });
-        setUsers(Array.isArray(res.data) ? res.data : []);
+        setUsers(
+          Array.isArray(res.data)
+            ? res.data.map((user) => ({
+                ...user,
+                totalCO2: toNumber(user.totalCO2),
+              }))
+            : [],
+        );
       } catch (err) {
         console.error("Error loading leaderboard", err);
       } finally {
@@ -106,10 +118,10 @@ function Leaderboard() {
 
   // Calculate stats
   const totalParticipants = users.length;
-  const topPerformerCO2 = users.length > 0 ? users[0]?.totalCO2 : 0;
+  const topPerformerCO2 = users.length > 0 ? toNumber(users[0]?.totalCO2) : 0;
   const averageCO2 =
     users.length > 0
-      ? users.reduce((acc, u) => acc + (u.totalCO2 || 0), 0) / users.length
+      ? users.reduce((acc, u) => acc + toNumber(u.totalCO2), 0) / users.length
       : 0;
 
   return (
@@ -226,7 +238,7 @@ function Leaderboard() {
                 </div>
                 <div className="text-left">
                   <p className="text-2xl font-bold text-slate-800">
-                    {topPerformerCO2?.toFixed(1) || 0}
+                    {topPerformerCO2.toFixed(1)}
                     <span className="text-sm font-medium text-slate-500 ml-0.5">
                       kg
                     </span>
@@ -479,7 +491,7 @@ function Leaderboard() {
                           }`}
                         >
                           <FaLeaf className="text-xs opacity-70" />
-                          {user.totalCO2?.toFixed(2) || "0.00"} kg
+                          {toNumber(user.totalCO2).toFixed(2)} kg
                         </span>
                       </td>
                     </motion.tr>

@@ -9,8 +9,11 @@ import {
   FaMapMarkerAlt,
   FaLeaf,
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 export default function Footer() {
+  const navigate = useNavigate();
+
   return (
     <footer className="mt-20 bg-gradient-to-b from-slate-900 to-slate-950 text-white relative overflow-hidden">
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />

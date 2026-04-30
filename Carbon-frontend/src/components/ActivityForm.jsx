@@ -40,7 +40,7 @@ const ActivityForm = () => {
       setType("");
       setData({});
     } catch (err) {
-      toast.error("Error logging activity");
+      toast.error(err.response?.data?.message || "Error logging activity");
     } finally {
       setLoading(false);
     }

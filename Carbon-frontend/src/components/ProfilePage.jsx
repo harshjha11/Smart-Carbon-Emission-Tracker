@@ -26,12 +26,23 @@ import {
 } from "react-icons/fa";
 import { HiSparkles } from "react-icons/hi";
 
+const emptyProfile = {
+  name: "",
+  email: "",
+  profilePic: "",
+};
+
+const normalizeProfile = (data) => ({
+  ...emptyProfile,
+  ...(data || {}),
+  name: data?.name || "",
+  email: data?.email || "",
+  profilePic: data?.profilePic || "",
+});
+
 function ProfilePage() {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState({
-    name: "",
-    email: "",
-  });
+  const [profile, setProfile] = useState(emptyProfile);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -95,7 +106,7 @@ function ProfilePage() {
       const newImageUrl = data.user?.profilePic;
 
       setImageUrl(newImageUrl);
-      setProfile((prev) => ({
+      setProfile((prev) => normalizeProfile({
         ...prev,
         ...data.user,
       }));
@@ -124,7 +135,7 @@ function ProfilePage() {
 
       const data = res.data;
 
-      setProfile(data.user);
+      setProfile(normalizeProfile(data.user));
       setImageUrl("");
       setPreview(null);
       setFile(null);
@@ -140,6 +151,11 @@ function ProfilePage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
       try {
         setLoading(true);
         const res = await axios.get(`${API_URL}/api/users/me`, {
@@ -147,16 +163,20 @@ function ProfilePage() {
             Authorization: `Bearer ${token}`,
           },
         });
-        setProfile(res.data);
+        setProfile(normalizeProfile(res.data));
       } catch (err) {
         toast.error("Failed to load profile");
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, [token, API_URL]);
+  }, [token, API_URL, navigate]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
@@ -171,18 +191,18 @@ function ProfilePage() {
         {
           name: profile.name,
           email: profile.email,
-          password,
+          ...(password.trim() ? { password } : {}),
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      setProfile(res.data);
+      setProfile(normalizeProfile(res.data));
       setPassword("");
       setIsEditing(false);
       toast.success("Profile updated successfully");
     } catch (err) {
-      toast.error("Error updating profile");
+      toast.error(err.response?.data?.message || "Error updating profile");
     } finally {
       setSaving(false);
     }
@@ -201,7 +221,6 @@ function ProfilePage() {
       });
 
       localStorage.removeItem("token");
-      setProfile?.(null);
       toast.success("Account deleted successfully");
       navigate("/");
     } catch (err) {
