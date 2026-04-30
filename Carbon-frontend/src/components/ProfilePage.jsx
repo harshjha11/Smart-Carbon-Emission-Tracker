@@ -41,11 +41,11 @@ const normalizeProfile = (data) => ({
   profilePic: data?.profilePic || "",
 });
 
-function ProfilePage({ setUser }) {
+function ProfilePage({ user, setUser }) {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState(emptyProfile);
+  const [profile, setProfile] = useState(() => normalizeProfile(user));
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!user?.email);
   const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving
@@ -56,6 +56,7 @@ function ProfilePage({ setUser }) {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const token = localStorage.getItem("token");
+  const fetchedTokenRef = useRef(null);
 
   // Ref for the hidden file input element used for uploading profile pictures
   const fileInputRef = useRef(null);
@@ -167,8 +168,16 @@ function ProfilePage({ setUser }) {
         return;
       }
 
+      if (fetchedTokenRef.current === token) {
+        return;
+      }
+
+      fetchedTokenRef.current = token;
+
       try {
-        setLoading(true);
+        if (!profile.email) {
+          setLoading(true);
+        }
         setLoadError("");
         const res = await axios.get(`${API_URL}/api/users/me`, {
           headers: {
@@ -190,7 +199,9 @@ function ProfilePage({ setUser }) {
             ? "Profile request timed out. Please try again."
             : "Failed to load profile");
 
-        setLoadError(message);
+        if (!profile.email) {
+          setLoadError(message);
+        }
         toast.error(message);
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
@@ -208,7 +219,7 @@ function ProfilePage({ setUser }) {
     return () => {
       cancelled = true;
     };
-  }, [token, navigate, setUser]);
+  }, [token, navigate, setUser, profile.email]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });

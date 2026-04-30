@@ -82,6 +82,14 @@ function App() {
           },
         });
 
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          if (!cancelled) {
+            setUser(null);
+          }
+          return;
+        }
+
         if (!res.ok) {
           throw new Error("Invalid session");
         }
@@ -90,11 +98,8 @@ function App() {
         if (!cancelled) {
           setUser({ ...userData, token });
         }
-      } catch {
-        localStorage.removeItem("token");
-        if (!cancelled) {
-          setUser(null);
-        }
+      } catch (err) {
+        console.error("Failed to hydrate session", err);
       } finally {
         if (!cancelled) {
           setAuthChecked(true);
@@ -160,7 +165,7 @@ function App() {
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route
           path="/profile"
-          element={<PrivateRoute element={<ProfilePage setUser={setUser} />} />}
+          element={<PrivateRoute element={<ProfilePage user={user} setUser={setUser} />} />}
         />
         <Route path="/offset" element={<PrivateRoute element={<Offset />} />} />
         <Route path="/learn-more" element={<LearnMore />} />
