@@ -23,7 +23,7 @@ function Login({ onLogin }) {
       );
 
       localStorage.setItem("token", res.data.token);
-      onLogin(res.data.user);
+      onLogin({ ...res.data.user, token: res.data.token });
 
       toast.success("Login successful!", { autoClose: 2000 });
 

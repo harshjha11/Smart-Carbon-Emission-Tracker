@@ -29,6 +29,17 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
+const API_URL = import.meta.env.VITE_API_URL || "";
+const HIDE_ROUTES = [
+  "/",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/verify-otp",
+  "/reset-password",
+  "/learn",
+];
+
 // Main App component
 function App() {
   // Initialize user state from localStorage token
@@ -45,6 +56,40 @@ function App() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  useEffect(() => {
+    const hydrateUser = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setUser(null);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/api/users/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error("Invalid session");
+        }
+
+        const userData = await res.json();
+        setUser({ ...userData, token });
+      } catch {
+        localStorage.removeItem("token");
+        setUser(null);
+        if (!HIDE_ROUTES.includes(location.pathname)) {
+          navigate("/login");
+        }
+      }
+    };
+
+    hydrateUser();
+  }, [location.pathname, navigate]);
+
   const handleLogin = (userData) => {
     setUser(userData);
     navigate("/home");
@@ -55,19 +100,9 @@ function App() {
     return token ? element : <Navigate to="/login" />;
   };
 
-  // Hide navbar/footer on auth pages
-  const hideRoutes = [
-    "/",
-    "/login",
-    "/register",
-    "/forgot-password",
-    "/verify-otp",
-    "/reset-password",
-    "/learn",
-  ];
   // Check if current route is in hideRoutes
-  const shouldHideNavbar = hideRoutes.includes(location.pathname);
-  const shouldHideFooter = hideRoutes.includes(location.pathname);
+  const shouldHideNavbar = HIDE_ROUTES.includes(location.pathname);
+  const shouldHideFooter = HIDE_ROUTES.includes(location.pathname);
 
   return (
     <>

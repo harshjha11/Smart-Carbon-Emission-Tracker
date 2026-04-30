@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useCallback, useContext, useState, useEffect } from "react";
 import axios from "axios";
 
 // Create the context
@@ -12,21 +12,31 @@ export const GoalProvider = ({ children }) => {
   const [goal, setGoal] = useState(null);
 
   // Fetch the goal from backend
-  const fetchGoal = async () => {
+  const fetchGoal = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
+
+      if (!token) {
+        setGoal(null);
+        return;
+      }
+
       const res = await axios.get(`${import.meta.env.VITE_API_URL || ""}/api/goals`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setGoal(res.data.weeklyGoal);
+      setGoal(res.data?.weeklyGoal ?? null);
     } catch (err) {
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        setGoal(null);
+      }
       console.error("Failed to fetch goal", err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchGoal();
-  }, []);
+  }, [fetchGoal]);
 
   return (
     <GoalContext.Provider value={{ goal, setGoal, fetchGoal }}>

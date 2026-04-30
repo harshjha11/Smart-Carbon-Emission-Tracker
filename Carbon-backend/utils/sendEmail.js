@@ -23,14 +23,17 @@ const sendEmail = async (to, subject, text) => {
     }
 
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: process.env.EMAIL_HOST || "smtp.gmail.com",
+      port: Number(process.env.EMAIL_PORT) || 465,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
+
     const mailOptions = {
-      from: `"Carbon Tracker" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_FROM || `"Carbon Tracker" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       text,
@@ -40,7 +43,12 @@ const sendEmail = async (to, subject, text) => {
     console.log("Email sent:", info.response);
     return info;
   } catch (error) {
-    console.error("Email sending failed:", error.message);
+    console.error("Email sending failed:", {
+      message: error.message,
+      code: error.code,
+      command: error.command,
+      response: error.response,
+    });
     throw error;
   }
 };

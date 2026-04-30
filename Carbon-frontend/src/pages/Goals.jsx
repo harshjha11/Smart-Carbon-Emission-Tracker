@@ -33,16 +33,27 @@ const Goals = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
+
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL || ""}/api/goals`,
         { weeklyGoal: parseFloat(goalInput) },
         { headers: { Authorization: `Bearer ${token}` } },
       );
       toast.success(res.data.message);
-      fetchGoal();
+      setGoal(res.data?.goal?.weeklyGoal ?? parseFloat(goalInput));
+      await fetchGoal();
       setGoalInput("");
     } catch (err) {
-      toast.error("Error setting goal");
+      toast.error(err.response?.data?.message || "Error setting goal");
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
     } finally {
       setLoading(false);
     }
@@ -50,7 +61,7 @@ const Goals = () => {
 
   useEffect(() => {
     fetchGoal();
-  }, []);
+  }, [fetchGoal]);
 
   // Suggested goals for quick selection
   const suggestedGoals = [

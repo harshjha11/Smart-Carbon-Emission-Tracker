@@ -31,6 +31,12 @@ const ActivityForm = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
+
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL || ""}/api/activities`,
         { type, data },
@@ -39,8 +45,13 @@ const ActivityForm = () => {
       toast.success(`Logged! CO₂: ${res.data.carbonFootprint} kg`);
       setType("");
       setData({});
+      window.dispatchEvent(new Event("carbon-data-updated"));
     } catch (err) {
       toast.error(err.response?.data?.message || "Error logging activity");
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }
     } finally {
       setLoading(false);
     }

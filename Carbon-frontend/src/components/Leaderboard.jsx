@@ -33,30 +33,49 @@ function Leaderboard() {
   const API_URL = import.meta.env.VITE_API_URL || "";
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
+    let isMounted = true;
+
+    const fetchLeaderboard = async (showLoader = false) => {
       try {
+        if (showLoader) {
+          setLoading(true);
+        }
+
         const token = localStorage.getItem("token");
         const res = await axios.get(`${API_URL}/api/activities/leaderboard`, {
+          params: { t: Date.now() },
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        setUsers(
-          Array.isArray(res.data)
-            ? res.data.map((user) => ({
-                ...user,
-                totalCO2: toNumber(user.totalCO2),
-              }))
-            : [],
-        );
+        if (isMounted) {
+          setUsers(
+            Array.isArray(res.data)
+              ? res.data.map((user) => ({
+                  ...user,
+                  totalCO2: toNumber(user.totalCO2),
+                }))
+              : [],
+          );
+        }
       } catch (err) {
         console.error("Error loading leaderboard", err);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchLeaderboard();
+    fetchLeaderboard(true);
+    const intervalId = setInterval(() => fetchLeaderboard(false), 10000);
+    window.addEventListener("carbon-data-updated", fetchLeaderboard);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+      window.removeEventListener("carbon-data-updated", fetchLeaderboard);
+    };
   }, [API_URL]);
 
   // Animation variants

@@ -40,7 +40,7 @@ const normalizeProfile = (data) => ({
   profilePic: data?.profilePic || "",
 });
 
-function ProfilePage() {
+function ProfilePage({ setUser }) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(emptyProfile);
   const [password, setPassword] = useState("");
@@ -64,8 +64,23 @@ function ProfilePage() {
   const [preview, setPreview] = useState(null);
   const [imageUrl, setImageUrl] = useState("");
 
-  // Compute the profile image URL, prioritizing the uploaded image, then the user's existing profile picture, and finally the preview URL for the selected file
-  const profileImage = imageUrl || profile?.profilePic || preview || "";
+  const getProfileImageSrc = (profilePic) => {
+    if (!profilePic) return "";
+
+    if (/^(https?:)?\/\//i.test(profilePic) || profilePic.startsWith("data:")) {
+      return profilePic;
+    }
+
+    if (profilePic.startsWith("/")) {
+      return `${API_URL}${profilePic}`;
+    }
+
+    return `${API_URL}/uploads/${profilePic}`;
+  };
+
+  // Prefer the local preview while upload is in progress, then persisted database URL.
+  const profileImage =
+    preview || getProfileImageSrc(imageUrl || profile?.profilePic) || "";
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
@@ -103,13 +118,16 @@ function ProfilePage() {
 
       const data = res.data;
 
-      const newImageUrl = data.user?.profilePic;
+      const newImageUrl = data.user?.profilePic || "";
 
       setImageUrl(newImageUrl);
-      setProfile((prev) => normalizeProfile({
-        ...prev,
+      const updatedProfile = normalizeProfile({
+        ...profile,
         ...data.user,
-      }));
+      });
+
+      setProfile(updatedProfile);
+      setUser?.((prev) => ({ ...prev, ...updatedProfile }));
 
       setFormSuccess("Profile picture updated!");
     } catch (err) {
@@ -135,7 +153,9 @@ function ProfilePage() {
 
       const data = res.data;
 
-      setProfile(normalizeProfile(data.user));
+      const updatedProfile = normalizeProfile(data.user);
+      setProfile(updatedProfile);
+      setUser?.((prev) => ({ ...prev, ...updatedProfile }));
       setImageUrl("");
       setPreview(null);
       setFile(null);
@@ -163,7 +183,9 @@ function ProfilePage() {
             Authorization: `Bearer ${token}`,
           },
         });
-        setProfile(normalizeProfile(res.data));
+        const fetchedProfile = normalizeProfile(res.data);
+        setProfile(fetchedProfile);
+        setUser?.((prev) => ({ ...prev, ...fetchedProfile }));
       } catch (err) {
         toast.error("Failed to load profile");
         if (err.response?.status === 401) {
@@ -176,7 +198,7 @@ function ProfilePage() {
     };
 
     fetchProfile();
-  }, [token, API_URL, navigate]);
+  }, [token, API_URL, navigate, setUser]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
@@ -197,7 +219,9 @@ function ProfilePage() {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      setProfile(normalizeProfile(res.data));
+      const updatedProfile = normalizeProfile(res.data);
+      setProfile(updatedProfile);
+      setUser?.((prev) => ({ ...prev, ...updatedProfile }));
       setPassword("");
       setIsEditing(false);
       toast.success("Profile updated successfully");
@@ -221,9 +245,11 @@ function ProfilePage() {
       });
 
       localStorage.removeItem("token");
+      setUser?.(null);
       toast.success("Account deleted successfully");
       navigate("/");
     } catch (err) {
+      console.error("Delete account failed:", err);
       toast.error("Failed to delete account");
     } finally {
       setDeletingAccount(false);

@@ -26,6 +26,8 @@ const removeUploadedFile = async (filename) => {
   }
 };
 
+const getSafeUser = (userId) => User.findById(userId).select("-password");
+
 // GET /api/users/me - Get current user profile
 router.get("/me", verifyToken, async (req, res) => {
   try {
@@ -120,7 +122,8 @@ router.delete("/profile-pic", verifyToken, async (req, res) => {
     user.profilePic = null;
     await user.save();
 
-    res.json({ user });
+    const safeUser = await getSafeUser(user._id);
+    res.json({ user: safeUser });
   } catch (err) {
     console.error("Remove profile picture failed:", err);
     res.status(500).json({ message: "Failed to remove profile picture" });
@@ -145,7 +148,8 @@ router.post(
           user.profilePic = null;
           await user.save();
 
-          return res.json({ user });
+          const safeUser = await getSafeUser(user._id);
+          return res.json({ user: safeUser });
         }
 
         return res.status(400).json({ message: "No file uploaded" });
@@ -154,7 +158,8 @@ router.post(
       user.profilePic = req.file.path;
       await user.save();
 
-      res.json({ user });
+      const safeUser = await getSafeUser(user._id);
+      res.json({ user: safeUser });
     } catch (err) {
       console.error(err); // VERY IMPORTANT
       res.status(500).json({ message: "Upload failed" });
