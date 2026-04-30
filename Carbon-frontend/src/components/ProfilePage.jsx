@@ -158,18 +158,44 @@ function ProfilePage({ user, setUser }) {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadProfile = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (cancelled) return;
+
+        const freshProfile = normalizeProfile(res.data);
+        setProfile(freshProfile);
+        setUser?.((prev) => ({ ...prev, ...freshProfile }));
+        setLoadError("");
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+        if (!cancelled) {
+          setLoadError("Profile data is not available. Please log in again.");
+        }
+      }
+    };
+
     if (!token) {
       navigate("/login");
-      return;
+      return undefined;
     }
 
     if (user?.email) {
       setProfile(normalizeProfile(user));
       setLoadError("");
-    } else {
-      setLoadError("Profile data is not available. Please log in again.");
     }
-  }, [token, user, navigate]);
+
+    loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, user?.email, user?.profilePic, navigate, setUser]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
