@@ -41,19 +41,16 @@ const sendWithResend = async (to, subject, text) => {
   return data;
 };
 
-const createSmtpTransporter = (port) =>
+const createSmtpTransporter = () =>
   nodemailer.createTransport({
-    host: (process.env.EMAIL_HOST || "smtp.gmail.com").trim(),
-    port,
-    secure: port === 465,
-    requireTLS: port === 587,
-    connectionTimeout: getTimeout(),
-    greetingTimeout: getTimeout(),
-    socketTimeout: getTimeout(),
+    service: "gmail", // IMPORTANT CHANGE
     auth: {
-      user: process.env.EMAIL_USER.trim(),
-      pass: process.env.EMAIL_PASS.replace(/\s/g, ""),
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS, // App password
     },
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 20000,
   });
 
 const sendWithSmtp = async (to, subject, text) => {
@@ -61,37 +58,17 @@ const sendWithSmtp = async (to, subject, text) => {
     throw new Error("EMAIL_USER and EMAIL_PASS must be set");
   }
 
-  const mailOptions = {
-    from: getFromAddress(),
+  const transporter = createSmtpTransporter();
+
+  const info = await transporter.sendMail({
+    from: process.env.EMAIL_USER,
     to,
     subject,
     text,
-  };
+  });
 
-  const primaryPort = Number(process.env.EMAIL_PORT) || 465;
-  const portsToTry = [
-    ...new Set([primaryPort, primaryPort === 465 ? 587 : 465]),
-  ];
-  let lastError;
-
-  for (const port of portsToTry) {
-    try {
-      const transporter = createSmtpTransporter(port);
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`Email sent via SMTP port ${port}:`, info.response);
-      return info;
-    } catch (error) {
-      lastError = error;
-      console.error(`Email sending failed on SMTP port ${port}:`, {
-        message: error.message,
-        code: error.code,
-        command: error.command,
-        response: error.response,
-      });
-    }
-  }
-
-  throw lastError;
+  console.log("Email sent via Gmail:", info.response);
+  return info;
 };
 
 const sendEmail = async (to, subject, text) => {
@@ -101,4 +78,5 @@ const sendEmail = async (to, subject, text) => {
 
   return sendWithResend(to, subject, text);
 };
+
 module.exports = sendEmail;
