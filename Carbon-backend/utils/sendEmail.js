@@ -29,6 +29,9 @@ const sendEmail = async (to, subject, text) => {
       host: process.env.EMAIL_HOST || "smtp.gmail.com",
       port,
       secure: port === 465,
+      connectionTimeout: Number(process.env.EMAIL_TIMEOUT_MS) || 15000,
+      greetingTimeout: Number(process.env.EMAIL_TIMEOUT_MS) || 15000,
+      socketTimeout: Number(process.env.EMAIL_TIMEOUT_MS) || 15000,
       auth: {
         user: process.env.EMAIL_USER.trim(),
         pass: password,

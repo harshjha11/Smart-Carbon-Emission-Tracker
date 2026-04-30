@@ -1,0 +1,5 @@
+[dotenv@17.3.1] injecting env (8) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+Achievement controller loaded
+MongoDB Connected
+Server running on port 5000
+Email sent: 250 2.0.0 OK  1777570631 d9443c01a7336-2b9caa8c45asm2455695ad.6 - gsmtp

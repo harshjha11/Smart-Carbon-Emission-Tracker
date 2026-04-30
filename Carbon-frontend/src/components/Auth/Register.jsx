@@ -35,9 +35,11 @@ function Register() {
     }
     try {
       setSendingOtp(true);
-      await axios.post(`${API_URL}/api/auth/send-otp`, {
-        email: form.email,
-      });
+      await axios.post(
+        `${API_URL}/api/auth/send-otp`,
+        { email: form.email },
+        { timeout: 20000 },
+      );
       setOtpSent(true);
       toast.success("OTP sent to your email!", { autoClose: 2000 });
     } catch (err) {
