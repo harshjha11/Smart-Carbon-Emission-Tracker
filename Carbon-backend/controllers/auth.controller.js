@@ -5,7 +5,8 @@ const sendEmail = require("../utils/sendEmail");
 
 // Password validation: min 8 chars, 1 uppercase, 1 lowercase, 1 special character
 const validatePassword = (password) => {
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
   return passwordRegex.test(password);
 };
 
@@ -15,7 +16,10 @@ const generateOtp = () => {
 };
 
 const isEmailConfigured = () =>
-  Boolean(process.env.RESEND_API_KEY?.trim() || (process.env.EMAIL_USER?.trim() && process.env.EMAIL_PASS?.trim()));
+  Boolean(
+    process.env.RESEND_API_KEY?.trim() ||
+    (process.env.EMAIL_USER?.trim() && process.env.EMAIL_PASS?.trim()),
+  );
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const getEmailErrorMessage = (err) => {
   if (err?.code === "ERESEND_CONFIG") {
@@ -38,7 +42,6 @@ const getEmailErrorMessage = (err) => {
 };
 
 // Step 1: Send OTP to email
-// Step 1: Send OTP to email
 exports.sendOtp = async (req, res) => {
   const email = req.body.email?.trim().toLowerCase();
   try {
@@ -47,12 +50,15 @@ exports.sendOtp = async (req, res) => {
     }
 
     if (!isValidEmail(email)) {
-      return res.status(400).json({ message: "Please enter a valid email address" });
+      return res
+        .status(400)
+        .json({ message: "Please enter a valid email address" });
     }
 
     if (!isEmailConfigured()) {
       return res.status(500).json({
-        message: "Email service is not configured. Set RESEND_API_KEY or Gmail SMTP variables in Render.",
+        message:
+          "Email service is not configured. Set RESEND_API_KEY or Gmail SMTP variables in Render.",
       });
     }
 
@@ -64,7 +70,9 @@ exports.sendOtp = async (req, res) => {
     let user = await User.findOne({ email });
     if (user) {
       if (user.password) {
-        return res.status(400).json({ message: "Email is already registered. Please log in." });
+        return res
+          .status(400)
+          .json({ message: "Email is already registered. Please log in." });
       }
       user.otp = otp;
       user.otpExpiry = otpExpiry;
@@ -76,7 +84,7 @@ exports.sendOtp = async (req, res) => {
         otp,
         otpExpiry,
         resetOtpVerified: false,
-        isVerified: false
+        isVerified: false,
       });
       await user.save();
     }
@@ -85,7 +93,7 @@ exports.sendOtp = async (req, res) => {
       await sendEmail(
         email,
         "Your Carbon Tracker OTP",
-        `Your OTP is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nIf you did not request this, please ignore this email.`
+        `Your OTP is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nIf you did not request this, please ignore this email.`,
       );
     } catch (emailError) {
       return res.status(502).json({
@@ -95,18 +103,19 @@ exports.sendOtp = async (req, res) => {
     }
 
     res.json({ message: "OTP sent to email" });
-
   } catch (err) {
     // 🔴 ADD THIS LINE (VERY IMPORTANT)
     console.error("SEND OTP ERROR:", err);
 
     if (err.code === 11000) {
-      return res.status(400).json({ message: "Email is already registered. Please log in." });
+      return res
+        .status(400)
+        .json({ message: "Email is already registered. Please log in." });
     }
 
     res.status(500).json({
       message: "Error sending OTP",
-      error: err.message
+      error: err.message,
     });
   }
 };
@@ -123,7 +132,9 @@ exports.verifyOtp = async (req, res) => {
       if (!user.password) {
         return res.json({ message: "Email already verified" });
       }
-      return res.status(400).json({ message: "Email is already registered. Please log in." });
+      return res
+        .status(400)
+        .json({ message: "Email is already registered. Please log in." });
     }
 
     // Validate OTP
@@ -144,7 +155,9 @@ exports.verifyOtp = async (req, res) => {
 
     res.json({ message: "Email verified successfully" });
   } catch (err) {
-    res.status(500).json({ message: "OTP verification error", error: err.message });
+    res
+      .status(500)
+      .json({ message: "OTP verification error", error: err.message });
   }
 };
 
@@ -155,7 +168,9 @@ exports.register = async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "Please verify your email first" });
+      return res
+        .status(400)
+        .json({ message: "Please verify your email first" });
     }
 
     // Check if email is verified
@@ -171,7 +186,8 @@ exports.register = async (req, res) => {
     // Validate password strength
     if (!validatePassword(password)) {
       return res.status(400).json({
-        message: "Password must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, and 1 special character"
+        message:
+          "Password must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, and 1 special character",
       });
     }
 
@@ -201,15 +217,23 @@ exports.login = async (req, res) => {
     }
 
     if (!user.password) {
-      return res.status(400).json({ message: "Please complete registration first" });
+      return res
+        .status(400)
+        .json({ message: "Please complete registration first" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+    if (!isMatch)
+      return res.status(400).json({ message: "Invalid credentials" });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET?.trim(), { expiresIn: "2h" });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET?.trim(), {
+      expiresIn: "2h",
+    });
 
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
+    res.json({
+      token,
+      user: { id: user._id, name: user.name, email: user.email },
+    });
   } catch (err) {
     res.status(500).json({ message: "Login error", error: err.message });
   }
@@ -224,12 +248,15 @@ exports.forgotPasswordOtp = async (req, res) => {
     }
 
     if (!isValidEmail(email)) {
-      return res.status(400).json({ message: "Please enter a valid email address" });
+      return res
+        .status(400)
+        .json({ message: "Please enter a valid email address" });
     }
 
     if (!isEmailConfigured()) {
       return res.status(500).json({
-        message: "Email service is not configured. Set RESEND_API_KEY or Gmail SMTP variables in Render.",
+        message:
+          "Email service is not configured. Set RESEND_API_KEY or Gmail SMTP variables in Render.",
       });
     }
 
@@ -251,7 +278,7 @@ exports.forgotPasswordOtp = async (req, res) => {
       await sendEmail(
         email,
         "Carbon Tracker - Password Reset OTP",
-        `Your password reset OTP is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nIf you did not request this, please ignore this email.`
+        `Your password reset OTP is: ${otp}\n\nThis OTP is valid for 10 minutes.\n\nIf you did not request this, please ignore this email.`,
       );
     } catch (emailError) {
       return res.status(502).json({
@@ -263,7 +290,12 @@ exports.forgotPasswordOtp = async (req, res) => {
     res.json({ message: "Password reset OTP sent to email" });
   } catch (err) {
     console.error("FORGOT PASSWORD OTP ERROR:", err);
-    res.status(500).json({ message: "Error sending password reset OTP", error: err.message });
+    res
+      .status(500)
+      .json({
+        message: "Error sending password reset OTP",
+        error: err.message,
+      });
   }
 };
 
@@ -292,7 +324,9 @@ exports.verifyForgotOtp = async (req, res) => {
 
     res.json({ message: "OTP verified successfully" });
   } catch (err) {
-    res.status(500).json({ message: "OTP verification error", error: err.message });
+    res
+      .status(500)
+      .json({ message: "OTP verification error", error: err.message });
   }
 };
 
@@ -307,13 +341,18 @@ exports.resetPassword = async (req, res) => {
     }
 
     if (!user.resetOtpVerified || user.otpExpiry < new Date()) {
-      return res.status(400).json({ message: "Please verify a valid OTP before resetting password" });
+      return res
+        .status(400)
+        .json({
+          message: "Please verify a valid OTP before resetting password",
+        });
     }
 
     // Validate password strength
     if (!validatePassword(newPassword)) {
       return res.status(400).json({
-        message: "Password must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, and 1 special character"
+        message:
+          "Password must be at least 8 characters long and contain at least 1 uppercase letter, 1 lowercase letter, and 1 special character",
       });
     }
 
@@ -327,6 +366,8 @@ exports.resetPassword = async (req, res) => {
 
     res.json({ message: "Password reset successfully" });
   } catch (err) {
-    res.status(500).json({ message: "Password reset error", error: err.message });
+    res
+      .status(500)
+      .json({ message: "Password reset error", error: err.message });
   }
 };

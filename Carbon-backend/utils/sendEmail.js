@@ -1,9 +1,11 @@
 const nodemailer = require("nodemailer");
 
-const getTimeout = () => Number(process.env.EMAIL_TIMEOUT_MS) || 15000;
+const getTimeout = () => Number(process.env.EMAIL_TIMEOUT_MS) || 30000;
+const getEmailUser = () => process.env.EMAIL_USER?.trim();
+const getEmailPass = () => process.env.EMAIL_PASS?.replace(/\s+/g, "");
 const getFromAddress = () =>
   process.env.EMAIL_FROM ||
-  `"Carbon Tracker" <${process.env.EMAIL_USER?.trim() || "onboarding@resend.dev"}>`;
+  `"Carbon Tracker" <${getEmailUser() || "onboarding@resend.dev"}>`;
 
 const sendWithResend = async (to, subject, text) => {
   if (!process.env.EMAIL_FROM?.trim()) {
@@ -41,42 +43,65 @@ const sendWithResend = async (to, subject, text) => {
   return data;
 };
 
-const createSmtpTransporter = () =>
+const createSmtpTransporter = ({ port, secure }) =>
   nodemailer.createTransport({
-    service: "gmail", // IMPORTANT CHANGE
+    host: "smtp.gmail.com",
+    port,
+    secure,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS, // App password
+      user: getEmailUser(),
+      pass: getEmailPass(),
     },
-    connectionTimeout: 20000,
-    greetingTimeout: 20000,
-    socketTimeout: 20000,
+    connectionTimeout: getTimeout(),
+    greetingTimeout: getTimeout(),
+    socketTimeout: getTimeout(),
   });
 
 const sendWithSmtp = async (to, subject, text) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+  if (!getEmailUser() || !getEmailPass()) {
     throw new Error("EMAIL_USER and EMAIL_PASS must be set");
   }
 
-  const transporter = createSmtpTransporter();
+  const configs = [
+    { port: 465, secure: true },
+    { port: 587, secure: false },
+  ];
 
-  const info = await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to,
-    subject,
-    text,
-  });
+  let lastError;
 
-  console.log("Email sent via Gmail:", info.response);
-  return info;
+  for (const config of configs) {
+    const transporter = createSmtpTransporter(config);
+
+    try {
+      const info = await transporter.sendMail({
+        from: getFromAddress(),
+        to,
+        subject,
+        text,
+      });
+
+      console.log(`Email sent via Gmail SMTP port ${config.port}:`, info.response);
+      return info;
+    } catch (error) {
+      lastError = error;
+
+      if (!["ETIMEDOUT", "ESOCKET", "ECONNECTION"].includes(error?.code)) {
+        throw error;
+      }
+
+      console.warn(`Gmail SMTP port ${config.port} failed:`, error.message);
+    }
+  }
+
+  throw lastError;
 };
 
 const sendEmail = async (to, subject, text) => {
-  if (!process.env.RESEND_API_KEY?.trim()) {
-    throw new Error("RESEND_API_KEY is not configured");
+  if (process.env.RESEND_API_KEY?.trim()) {
+    return sendWithResend(to, subject, text);
   }
 
-  return sendWithResend(to, subject, text);
+  return sendWithSmtp(to, subject, text);
 };
 
 module.exports = sendEmail;
