@@ -28,7 +28,7 @@ function Login({ onLogin }) {
       toast.success("Login successful!", { autoClose: 2000 });
 
       setTimeout(() => {
-        navigate("/");
+        navigate("/home");
       }, 2000);
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed");

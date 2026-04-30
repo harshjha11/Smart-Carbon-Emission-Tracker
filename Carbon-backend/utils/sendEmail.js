@@ -18,8 +18,9 @@ const nodemailer = require("nodemailer");
  */
 const sendEmail = async (to, subject, text) => {
   try {
-    console.log("EMAIL_USER =", process.env.EMAIL_USER);
-    console.log("EMAIL_PASS =", process.env.EMAIL_PASS ? "FOUND" : "MISSING");
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      throw new Error("EMAIL_USER and EMAIL_PASS must be set");
+    }
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
