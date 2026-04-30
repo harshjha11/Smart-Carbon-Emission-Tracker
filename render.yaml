@@ -19,6 +19,10 @@ services:
         value: smtp.gmail.com
       - key: EMAIL_PORT
         value: 465
+      - key: EMAIL_FROM
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY

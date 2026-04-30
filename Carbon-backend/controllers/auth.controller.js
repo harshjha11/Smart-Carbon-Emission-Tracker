@@ -14,9 +14,18 @@ const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-const isEmailConfigured = () => Boolean(process.env.EMAIL_USER?.trim() && process.env.EMAIL_PASS?.trim());
+const isEmailConfigured = () =>
+  Boolean(process.env.RESEND_API_KEY?.trim() || (process.env.EMAIL_USER?.trim() && process.env.EMAIL_PASS?.trim()));
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 const getEmailErrorMessage = (err) => {
+  if (err?.code === "ERESEND_CONFIG") {
+    return "Email sender is not configured for public delivery. Set EMAIL_FROM to an address on your verified email domain.";
+  }
+
+  if (err?.code === "ERESEND") {
+    return "Email provider rejected the OTP email. Verify your sending domain and EMAIL_FROM address in Render.";
+  }
+
   if (err?.code === "EAUTH") {
     return "Email login failed. Check EMAIL_USER and Gmail App Password in Render environment variables.";
   }
@@ -43,7 +52,7 @@ exports.sendOtp = async (req, res) => {
 
     if (!isEmailConfigured()) {
       return res.status(500).json({
-        message: "Email service is not configured. Set EMAIL_USER and EMAIL_PASS in Render.",
+        message: "Email service is not configured. Set RESEND_API_KEY or Gmail SMTP variables in Render.",
       });
     }
 
@@ -220,7 +229,7 @@ exports.forgotPasswordOtp = async (req, res) => {
 
     if (!isEmailConfigured()) {
       return res.status(500).json({
-        message: "Email service is not configured. Set EMAIL_USER and EMAIL_PASS in Render.",
+        message: "Email service is not configured. Set RESEND_API_KEY or Gmail SMTP variables in Render.",
       });
     }
 

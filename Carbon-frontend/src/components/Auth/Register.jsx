@@ -43,7 +43,14 @@ function Register() {
       setOtpSent(true);
       toast.success("OTP sent to your email!", { autoClose: 2000 });
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send OTP", {
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        (err.code === "ECONNABORTED"
+          ? "OTP request timed out. Please try again."
+          : "Failed to send OTP");
+
+      toast.error(message, {
         autoClose: 3000,
       });
     } finally {
