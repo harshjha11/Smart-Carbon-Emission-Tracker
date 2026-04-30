@@ -17,7 +17,7 @@ import {
   FaDownload,
 } from "react-icons/fa";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 function Offset() {
   const navigate = useNavigate();

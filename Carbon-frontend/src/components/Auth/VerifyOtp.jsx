@@ -28,7 +28,7 @@ function VerifyOtp() {
       return;
     }
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/verify-forgot-otp`, {
+      await axios.post(`${import.meta.env.VITE_API_URL || ""}/api/auth/verify-forgot-otp`, {
 
         email: form.email,
         otp: form.otp,

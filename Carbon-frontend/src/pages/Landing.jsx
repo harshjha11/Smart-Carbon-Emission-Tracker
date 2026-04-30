@@ -21,7 +21,7 @@ function Landing() {
   const [leaderboardUsers, setLeaderboardUsers] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = import.meta.env.VITE_API_URL || "";
 
   const getProfileImageSrc = (profilePic) => {
     if (!profilePic) return "";
@@ -85,12 +85,11 @@ function Landing() {
       }
 
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/activities/leaderboard`,
-          { params: { t: Date.now() } },
-        );
+        const response = await axios.get(`${API_URL}/api/activities/leaderboard`, {
+          params: { t: Date.now() },
+        });
         if (isMounted) {
-          setLeaderboardUsers(response.data || []);
+          setLeaderboardUsers(Array.isArray(response.data) ? response.data : []);
           setLastUpdated(new Date());
         }
       } catch (error) {
@@ -114,7 +113,7 @@ function Landing() {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [LEADERBOARD_REFRESH_MS]);
+  }, [API_URL, LEADERBOARD_REFRESH_MS]);
 
   // Theme state management with system preference fallback
   const [theme, setTheme] = useState(() => {

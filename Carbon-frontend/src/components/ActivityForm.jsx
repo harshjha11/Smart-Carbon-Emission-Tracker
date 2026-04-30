@@ -32,7 +32,7 @@ const ActivityForm = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/activities`,
+        `${import.meta.env.VITE_API_URL || ""}/api/activities`,
         { type, data },
         { headers: { Authorization: `Bearer ${token}` } },
       );

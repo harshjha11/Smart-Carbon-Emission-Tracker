@@ -31,7 +31,7 @@ import {
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 function Dashboard() {
   const navigate = useNavigate();

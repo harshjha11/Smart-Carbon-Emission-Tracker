@@ -15,7 +15,7 @@ export const GoalProvider = ({ children }) => {
   const fetchGoal = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/goals`, {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL || ""}/api/goals`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setGoal(res.data.weeklyGoal);

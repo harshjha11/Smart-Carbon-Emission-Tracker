@@ -34,7 +34,7 @@ const Goals = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/goals`,
+        `${import.meta.env.VITE_API_URL || ""}/api/goals`,
         { weeklyGoal: parseFloat(goalInput) },
         { headers: { Authorization: `Bearer ${token}` } },
       );

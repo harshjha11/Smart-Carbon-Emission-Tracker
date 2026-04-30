@@ -25,21 +25,18 @@ function Leaderboard() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_URL;
+  const API_URL = import.meta.env.VITE_API_URL || "";
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get(
-          `${import.meta.env.VITE_API_URL}/api/activities/leaderboard`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+        const res = await axios.get(`${API_URL}/api/activities/leaderboard`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-        );
-        setUsers(res.data);
+        });
+        setUsers(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error("Error loading leaderboard", err);
       } finally {
@@ -48,7 +45,7 @@ function Leaderboard() {
     };
 
     fetchLeaderboard();
-  }, []);
+  }, [API_URL]);
 
   // Animation variants
   const containerVariants = {
