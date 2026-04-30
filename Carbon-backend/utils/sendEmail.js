@@ -2,11 +2,14 @@ const nodemailer = require("nodemailer");
 
 const getTimeout = () => Number(process.env.EMAIL_TIMEOUT_MS) || 15000;
 const getFromAddress = () =>
-  process.env.EMAIL_FROM || `"Carbon Tracker" <${process.env.EMAIL_USER?.trim() || "onboarding@resend.dev"}>`;
+  process.env.EMAIL_FROM ||
+  `"Carbon Tracker" <${process.env.EMAIL_USER?.trim() || "onboarding@resend.dev"}>`;
 
 const sendWithResend = async (to, subject, text) => {
   if (!process.env.EMAIL_FROM?.trim()) {
-    const error = new Error("EMAIL_FROM must be set to an address on your verified Resend domain.");
+    const error = new Error(
+      "EMAIL_FROM must be set to an address on your verified Resend domain.",
+    );
     error.code = "ERESEND_CONFIG";
     throw error;
   }
@@ -66,7 +69,9 @@ const sendWithSmtp = async (to, subject, text) => {
   };
 
   const primaryPort = Number(process.env.EMAIL_PORT) || 465;
-  const portsToTry = [...new Set([primaryPort, primaryPort === 465 ? 587 : 465])];
+  const portsToTry = [
+    ...new Set([primaryPort, primaryPort === 465 ? 587 : 465]),
+  ];
   let lastError;
 
   for (const port of portsToTry) {
@@ -90,11 +95,10 @@ const sendWithSmtp = async (to, subject, text) => {
 };
 
 const sendEmail = async (to, subject, text) => {
-  if (process.env.RESEND_API_KEY?.trim()) {
-    return sendWithResend(to, subject, text);
+  if (!process.env.RESEND_API_KEY?.trim()) {
+    throw new Error("RESEND_API_KEY is not configured");
   }
 
-  return sendWithSmtp(to, subject, text);
+  return sendWithResend(to, subject, text);
 };
-
 module.exports = sendEmail;
