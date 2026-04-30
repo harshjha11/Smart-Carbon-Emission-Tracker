@@ -1,0 +1,23 @@
+{
+  "name": "carbon-tracker",
+  "version": "1.0.0",
+  "description": "A MERN-based sustainable living application that helps users track their carbon emissions and build eco-friendly habits.  \r This project supports the vision of **Atmanirbhar Bharat** by promoting environmental awareness through technology.",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "npm install --prefix Carbon-backend && npm install --prefix Carbon-frontend",
+    "build": "npm run install-all && npm run build --prefix Carbon-frontend",
+    "start": "npm start --prefix Carbon-backend",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harshjha11/Smart-Carbon-Emission-Tracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/harshjha11/Smart-Carbon-Emission-Tracker/issues"
+  },
+  "homepage": "https://github.com/harshjha11/Smart-Carbon-Emission-Tracker#readme"
+}

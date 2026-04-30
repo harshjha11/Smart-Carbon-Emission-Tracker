@@ -21,7 +21,7 @@ const app = express();
 // Connect to DB
 connectDB();
 // Test email sending (uncomment to test)
-app.get("/", (req, res) => {
+app.get("/api/health", (req, res) => {
   res.send("Carbon Backend is running successfully 🚀");
 });
 
@@ -37,6 +37,18 @@ app.use("/api/activities", activityRoutes);
 app.use("/api/achievements", achievementRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/offset", offsetRoutes);
+
+// Serve frontend in production
+const frontendDistPath = path.join(__dirname, "../Carbon-frontend/dist");
+app.use(express.static(frontendDistPath));
+
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api")) {
+    return next();
+  }
+
+  res.sendFile(path.join(frontendDistPath, "index.html"));
+});
 
 // Start Server
 const PORT = process.env.PORT || 5000;
