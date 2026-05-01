@@ -168,13 +168,11 @@ function ProfilePage({ user, setUser }) {
   useEffect(() => {
     let cancelled = false;
 
-    // ✅ Redirect if no token
     if (!token) {
       navigate("/login");
       return;
     }
 
-    // 🚫 Prevent multiple API calls (Strict Mode / re-renders)
     if (hasFetched.current) return;
     hasFetched.current = true;
 
@@ -187,22 +185,9 @@ function ProfilePage({ user, setUser }) {
         if (cancelled) return;
 
         const freshProfile = normalizeProfile(res.data);
+
+        // ✅ ONLY local state
         setProfile(freshProfile);
-
-        // ✅ Update user only if changed (prevents re-renders)
-        setUser?.((prev) => {
-          if (!prev) return freshProfile;
-
-          const isSame =
-            prev.name === freshProfile.name &&
-            prev.email === freshProfile.email &&
-            prev.profilePic === freshProfile.profilePic;
-
-          if (isSame) return prev;
-
-          return { ...prev, ...freshProfile };
-        });
-
         setLoadError("");
       } catch (err) {
         console.error("Failed to load profile:", err);
