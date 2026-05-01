@@ -40,6 +40,16 @@ const HIDE_ROUTES = [
   "/learn",
 ];
 
+const PrivateRoute = ({ element, authChecked }) => {
+  const token = localStorage.getItem("token");
+
+  if (!authChecked && token) {
+    return null;
+  }
+
+  return token ? element : <Navigate to="/login" />;
+};
+
 // Main App component
 function App() {
   // Initialize user state from localStorage token
@@ -118,14 +128,6 @@ function App() {
     setUser(userData);
     navigate("/home");
   };
-  // PrivateRoute component to protect routes that require authentication
-  const PrivateRoute = ({ element }) => {
-    const token = localStorage.getItem("token");
-    if (!authChecked && token) {
-      return null;
-    }
-    return token ? element : <Navigate to="/login" />;
-  };
 
   // Check if current route is in hideRoutes
   const shouldHideNavbar = HIDE_ROUTES.includes(location.pathname);
@@ -148,26 +150,40 @@ function App() {
           path="/"
           element={user ? <Navigate to="/home" /> : <Landing />}
         />
-        <Route path="/home" element={<PrivateRoute element={<Home />} />} />
+        <Route
+          path="/home"
+          element={<PrivateRoute authChecked={authChecked} element={<Home />} />}
+        />
         <Route
           path="/dashboard"
-          element={<PrivateRoute element={<Dashboard />} />}
+          element={<PrivateRoute authChecked={authChecked} element={<Dashboard />} />}
         />
         <Route
           path="/activity"
-          element={<PrivateRoute element={<ActivityForm />} />}
+          element={<PrivateRoute authChecked={authChecked} element={<ActivityForm />} />}
         />
-        <Route path="/goals" element={<PrivateRoute element={<Goals />} />} />
+        <Route
+          path="/goals"
+          element={<PrivateRoute authChecked={authChecked} element={<Goals />} />}
+        />
         <Route
           path="/achievements"
-          element={<PrivateRoute element={<Achievements />} />}
+          element={<PrivateRoute authChecked={authChecked} element={<Achievements />} />}
         />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route
           path="/profile"
-          element={<PrivateRoute element={<ProfilePage user={user} setUser={setUser} />} />}
+          element={
+            <PrivateRoute
+              authChecked={authChecked}
+              element={<ProfilePage user={user} setUser={setUser} />}
+            />
+          }
         />
-        <Route path="/offset" element={<PrivateRoute element={<Offset />} />} />
+        <Route
+          path="/offset"
+          element={<PrivateRoute authChecked={authChecked} element={<Offset />} />}
+        />
         <Route path="/learn-more" element={<LearnMore />} />
       </Routes>
 

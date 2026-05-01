@@ -177,7 +177,19 @@ function ProfilePage({ user, setUser }) {
 
         const freshProfile = normalizeProfile(res.data);
         setProfile(freshProfile);
-        setUser?.((prev) => ({ ...prev, ...freshProfile }));
+        setUser?.((prev) => {
+          const nextUser = { ...(prev || {}), ...freshProfile };
+
+          if (
+            prev?.name === nextUser.name &&
+            prev?.email === nextUser.email &&
+            prev?.profilePic === nextUser.profilePic
+          ) {
+            return prev;
+          }
+
+          return nextUser;
+        });
         setLoadError("");
       } catch (err) {
         console.error("Failed to load profile:", err);
