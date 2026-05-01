@@ -46,7 +46,7 @@ function ProfilePage({ user, setUser }) {
   const [profile, setProfile] = useState(() => normalizeProfile(user));
   const [password, setPassword] = useState("");
   const [loadError, setLoadError] = useState(
-    user?.email ? "" : "Profile data is not available. Please log in again.",
+    user && !user.email ? "" : "Profile data is not available. Please log in again.",
   );
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving
@@ -161,6 +161,23 @@ function ProfilePage({ user, setUser }) {
       navigate("/login");
     }
   }, [token, navigate]);
+
+  useEffect(() => {
+    if (!user) {
+      setLoadError("Profile data is not available. Please log in again.");
+      return;
+    }
+
+    if (!user.email) {
+      setLoadError("");
+      return;
+    }
+
+    const hydratedProfile = normalizeProfile(user);
+    setProfile(hydratedProfile);
+    setImageUrl(hydratedProfile.profilePic || "");
+    setLoadError("");
+  }, [user]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
