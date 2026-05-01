@@ -40,14 +40,12 @@ const HIDE_ROUTES = [
   "/learn",
 ];
 
-const PrivateRoute = ({ element, authChecked }) => {
-  const token = localStorage.getItem("token");
-
-  if (!authChecked && token) {
+const PrivateRoute = ({ element, authChecked, isAuthenticated }) => {
+  if (!authChecked) {
     return null;
   }
 
-  return token ? element : <Navigate to="/login" />;
+  return isAuthenticated ? element : <Navigate to="/login" replace />;
 };
 
 // Main App component
@@ -61,6 +59,7 @@ function App() {
   // React Router hooks for navigation and location
   const navigate = useNavigate();
   const location = useLocation();
+  const isAuthenticated = Boolean(user);
 
   // Scroll to top on route change
   useEffect(() => {
@@ -124,6 +123,21 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      localStorage.removeItem("token");
+      setUser(null);
+      setAuthChecked(true);
+
+      if (!HIDE_ROUTES.includes(location.pathname)) {
+        navigate("/login", { replace: true });
+      }
+    };
+
+    window.addEventListener("auth:logout", handleAuthLogout);
+    return () => window.removeEventListener("auth:logout", handleAuthLogout);
+  }, [location.pathname, navigate]);
+
   const handleLogin = (userData) => {
     setUser(userData);
     navigate("/home");
@@ -152,23 +166,53 @@ function App() {
         />
         <Route
           path="/home"
-          element={<PrivateRoute authChecked={authChecked} element={<Home />} />}
+          element={
+            <PrivateRoute
+              authChecked={authChecked}
+              isAuthenticated={isAuthenticated}
+              element={<Home />}
+            />
+          }
         />
         <Route
           path="/dashboard"
-          element={<PrivateRoute authChecked={authChecked} element={<Dashboard />} />}
+          element={
+            <PrivateRoute
+              authChecked={authChecked}
+              isAuthenticated={isAuthenticated}
+              element={<Dashboard />}
+            />
+          }
         />
         <Route
           path="/activity"
-          element={<PrivateRoute authChecked={authChecked} element={<ActivityForm />} />}
+          element={
+            <PrivateRoute
+              authChecked={authChecked}
+              isAuthenticated={isAuthenticated}
+              element={<ActivityForm />}
+            />
+          }
         />
         <Route
           path="/goals"
-          element={<PrivateRoute authChecked={authChecked} element={<Goals />} />}
+          element={
+            <PrivateRoute
+              authChecked={authChecked}
+              isAuthenticated={isAuthenticated}
+              element={<Goals />}
+            />
+          }
         />
         <Route
           path="/achievements"
-          element={<PrivateRoute authChecked={authChecked} element={<Achievements />} />}
+          element={
+            <PrivateRoute
+              authChecked={authChecked}
+              isAuthenticated={isAuthenticated}
+              element={<Achievements />}
+            />
+          }
         />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route
@@ -176,13 +220,20 @@ function App() {
           element={
             <PrivateRoute
               authChecked={authChecked}
+              isAuthenticated={isAuthenticated}
               element={<ProfilePage user={user} setUser={setUser} />}
             />
           }
         />
         <Route
           path="/offset"
-          element={<PrivateRoute authChecked={authChecked} element={<Offset />} />}
+          element={
+            <PrivateRoute
+              authChecked={authChecked}
+              isAuthenticated={isAuthenticated}
+              element={<Offset />}
+            />
+          }
         />
         <Route path="/learn-more" element={<LearnMore />} />
       </Routes>

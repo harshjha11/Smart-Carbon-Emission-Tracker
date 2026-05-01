@@ -30,6 +30,8 @@ export const GoalProvider = ({ children }) => {
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
         setGoal(null);
+        window.dispatchEvent(new Event("auth:logout"));
+        return;
       }
       console.error("Failed to fetch goal", err);
     }

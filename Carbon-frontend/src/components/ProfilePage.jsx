@@ -46,7 +46,7 @@ function ProfilePage({ user, setUser }) {
   const [profile, setProfile] = useState(() => normalizeProfile(user));
   const [password, setPassword] = useState("");
   const [loadError, setLoadError] = useState(
-    user && !user.email ? "" : "Profile data is not available. Please log in again.",
+    user?.email ? "" : "Profile data is not available. Please log in again.",
   );
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving
@@ -158,7 +158,7 @@ function ProfilePage({ user, setUser }) {
 
   useEffect(() => {
     if (!token) {
-      navigate("/login");
+      navigate("/login", { replace: true });
     }
   }, [token, navigate]);
 
@@ -169,7 +169,7 @@ function ProfilePage({ user, setUser }) {
     }
 
     if (!user.email) {
-      setLoadError("");
+      setLoadError("Profile data is not available. Please log in again.");
       return;
     }
 
