@@ -45,7 +45,9 @@ function ProfilePage({ user, setUser }) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(() => normalizeProfile(user));
   const [password, setPassword] = useState("");
-  const [loadError, setLoadError] = useState(user?.email ? "" : "Profile data is not available. Please log in again.");
+  const [loadError, setLoadError] = useState(
+    user?.email ? "" : "Profile data is not available. Please log in again.",
+  );
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState("idle"); // idle | saving
   const [isSaved, setIsSaved] = useState(false);
@@ -130,14 +132,11 @@ function ProfilePage({ user, setUser }) {
     try {
       setSaveStatus("saving");
 
-      const res = await axios.delete(
-        `${API_URL}/api/users/profile-pic`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const res = await axios.delete(`${API_URL}/api/users/profile-pic`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       const data = res.data;
 
@@ -164,8 +163,20 @@ function ProfilePage({ user, setUser }) {
     }
   }, [user?.email, user?.profilePic]);
 
+  const hasFetched = useRef(false);
+
   useEffect(() => {
     let cancelled = false;
+
+    // ✅ Redirect if no token
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    // 🚫 Prevent multiple API calls (Strict Mode / re-renders)
+    if (hasFetched.current) return;
+    hasFetched.current = true;
 
     const loadProfile = async () => {
       try {
@@ -177,19 +188,21 @@ function ProfilePage({ user, setUser }) {
 
         const freshProfile = normalizeProfile(res.data);
         setProfile(freshProfile);
+
+        // ✅ Update user only if changed (prevents re-renders)
         setUser?.((prev) => {
-          const nextUser = { ...(prev || {}), ...freshProfile };
+          if (!prev) return freshProfile;
 
-          if (
-            prev?.name === nextUser.name &&
-            prev?.email === nextUser.email &&
-            prev?.profilePic === nextUser.profilePic
-          ) {
-            return prev;
-          }
+          const isSame =
+            prev.name === freshProfile.name &&
+            prev.email === freshProfile.email &&
+            prev.profilePic === freshProfile.profilePic;
 
-          return nextUser;
+          if (isSame) return prev;
+
+          return { ...prev, ...freshProfile };
         });
+
         setLoadError("");
       } catch (err) {
         console.error("Failed to load profile:", err);
@@ -199,17 +212,12 @@ function ProfilePage({ user, setUser }) {
       }
     };
 
-    if (!token) {
-      navigate("/login");
-      return undefined;
-    }
-
     loadProfile();
 
     return () => {
       cancelled = true;
     };
-  }, [token, navigate, setUser]);
+  }, [token, navigate]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
