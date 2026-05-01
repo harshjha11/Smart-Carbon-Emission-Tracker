@@ -171,8 +171,6 @@ function ProfilePage({ user, setUser }) {
       return;
     }
 
-    let cancelled = false;
-
     const applyLoadedProfile = (data) => {
       const hydratedProfile = normalizeProfile(data);
       setProfile(hydratedProfile);
@@ -181,48 +179,15 @@ function ProfilePage({ user, setUser }) {
       loadedTokenRef.current = token;
     };
 
-    const fetchProfile = async () => {
-      try {
-        setLoadingProfile(true);
-
-        const res = await axios.get(`${API_URL}/api/users/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!cancelled) {
-          applyLoadedProfile(res.data);
-          setUser?.((prev) => ({ ...prev, ...res.data, token }));
-        }
-      } catch (err) {
-        if (cancelled) return;
-
-        if (err.response?.status === 401) {
-          localStorage.removeItem("token");
-          setUser?.(null);
-          navigate("/login", { replace: true });
-          return;
-        }
-
-        setLoadError("Profile data is not available. Please try again.");
-      } finally {
-        if (!cancelled) {
-          setLoadingProfile(false);
-        }
-      }
-    };
-
     if (user?.email) {
       applyLoadedProfile(user);
       setLoadingProfile(false);
       return;
     }
 
-    fetchProfile();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token, user, setUser, navigate]);
+    setLoadingProfile(false);
+    setLoadError("Profile data is not available. Please log in again.");
+  }, [token, user]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });

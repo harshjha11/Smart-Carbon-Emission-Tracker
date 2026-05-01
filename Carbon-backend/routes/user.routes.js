@@ -31,6 +31,7 @@ const getSafeUser = (userId) => User.findById(userId).select("-password");
 // GET /api/users/me - Get current user profile
 router.get("/me", verifyToken, async (req, res) => {
   try {
+    res.set("Cache-Control", "no-store");
     const user = await User.findById(req.user.id).select("-password");
     if (!user) {
       return res.status(404).json({ message: "User not found" });

@@ -59,7 +59,7 @@ function App() {
   // React Router hooks for navigation and location
   const navigate = useNavigate();
   const location = useLocation();
-  const isAuthenticated = Boolean(user);
+  const isAuthenticated = Boolean(user?.email);
 
   // Scroll to top on route change
   useEffect(() => {
@@ -86,8 +86,10 @@ function App() {
       try {
         const res = await fetch(`${API_URL}/api/users/me`, {
           signal: controller.signal,
+          cache: "no-store",
           headers: {
             Authorization: `Bearer ${token}`,
+            "Cache-Control": "no-cache",
           },
         });
 
@@ -109,6 +111,10 @@ function App() {
         }
       } catch (err) {
         console.error("Failed to hydrate session", err);
+        localStorage.removeItem("token");
+        if (!cancelled) {
+          setUser(null);
+        }
       } finally {
         if (!cancelled) {
           setAuthChecked(true);
