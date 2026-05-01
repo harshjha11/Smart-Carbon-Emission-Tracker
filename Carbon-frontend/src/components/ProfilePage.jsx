@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { memo, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -159,14 +159,8 @@ function ProfilePage({ user, setUser }) {
   useEffect(() => {
     if (!token) {
       navigate("/login");
-      return;
     }
-
-    if (user?.email) {
-      setProfile(normalizeProfile(user));
-      setLoadError("");
-    }
-  }, [token, user?.email, user?.profilePic, navigate]);
+  }, [token, navigate]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
@@ -684,4 +678,4 @@ function ProfilePage({ user, setUser }) {
   );
 }
 
-export default ProfilePage;
+export default memo(ProfilePage);
