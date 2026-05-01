@@ -158,6 +158,13 @@ function ProfilePage({ user, setUser }) {
   };
 
   useEffect(() => {
+    if (user?.email) {
+      setProfile(normalizeProfile(user));
+      setLoadError("");
+    }
+  }, [user?.email, user?.profilePic]);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadProfile = async () => {
@@ -185,17 +192,12 @@ function ProfilePage({ user, setUser }) {
       return undefined;
     }
 
-    if (user?.email) {
-      setProfile(normalizeProfile(user));
-      setLoadError("");
-    }
-
     loadProfile();
 
     return () => {
       cancelled = true;
     };
-  }, [token, user?.email, user?.profilePic, navigate, setUser]);
+  }, [token, navigate, setUser]);
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value });
